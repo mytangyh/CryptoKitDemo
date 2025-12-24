@@ -3,8 +3,6 @@ package com.example.cryptokit.api.builders
 import com.example.cryptokit.api.extensions.fromHex
 import com.example.cryptokit.api.results.CipherResult
 import com.example.cryptokit.core.symmetric.TripleDESCipher
-import com.example.cryptokit.exception.DecryptionException
-import com.example.cryptokit.exception.EncryptionException
 import com.example.cryptokit.exception.ValidationException
 import com.example.cryptokit.interceptor.InterceptorChain
 import java.security.SecureRandom
@@ -24,11 +22,17 @@ import javax.crypto.spec.SecretKeySpec
  * 
  * 默认配置：3DES-CBC-PKCS5Padding
  */
-class TripleDESBuilder {
-    private var mode: String = "CBC"
-    private var padding: String = "PKCS5Padding"
+class TripleDESBuilder : SymmetricBuilder<TripleDESBuilder>() {
+    
+    override fun self(): TripleDESBuilder = this
+    
     private var key: SecretKey? = null
     private var iv: ByteArray? = null
+
+    init {
+        mode = "CBC"
+        padding = "PKCS5Padding"
+    }
 
     private val cipher: TripleDESCipher
         get() = TripleDESCipher(mode, padding)
@@ -36,10 +40,8 @@ class TripleDESBuilder {
     /**
      * 设置加密模式
      */
-    fun mode(mode: String): TripleDESBuilder = apply { 
-        if (mode.uppercase() !in SUPPORTED_MODES) {
-            throw ValidationException("Unsupported 3DES mode: $mode, supported: $SUPPORTED_MODES")
-        }
+    override fun mode(mode: String): TripleDESBuilder = apply { 
+        requireIn(mode.uppercase(), SUPPORTED_MODES, "mode")
         this.mode = mode.uppercase()
     }
 
@@ -60,15 +62,10 @@ class TripleDESBuilder {
     }
 
     /**
-     * 设置填充方案
-     */
-    fun padding(padding: String): TripleDESBuilder = apply { this.padding = padding }
-
-    /**
      * 设置密钥
      */
     fun key(key: SecretKey): TripleDESBuilder = apply { 
-        validateKey(key)
+        validateSecretKey(key)
         this.key = key 
     }
 
@@ -86,11 +83,7 @@ class TripleDESBuilder {
      * 从十六进制字符串设置密钥
      */
     fun key(keyHex: String): TripleDESBuilder = apply {
-        val keyBytes = try {
-            keyHex.fromHex()
-        } catch (e: Exception) {
-            throw ValidationException("Invalid hex key string", e)
-        }
+        val keyBytes = wrapCryptoException("Parse hex key") { keyHex.fromHex() }
         return key(keyBytes)
     }
 
@@ -98,46 +91,32 @@ class TripleDESBuilder {
      * 设置初始化向量
      */
     fun iv(iv: ByteArray): TripleDESBuilder = apply { 
-        if (iv.size != 8) {
-            throw ValidationException.invalidIvSize(8, iv.size)
-        }
+        validateIvSize(iv, 8)
         this.iv = iv 
     }
 
     /**
      * 加密字节数组
-     * 
-     * @throws EncryptionException 加密失败
-     * @throws ValidationException 输入验证失败
      */
     fun encrypt(plaintext: ByteArray): CipherResult {
-        if (plaintext.isEmpty()) {
-            throw ValidationException.emptyInput()
-        }
+        requireNotEmpty(plaintext, "plaintext")
         
-        try {
-            // 拦截器：加密前
+        return wrapEncryptionException("3DES-$mode") {
             val processedPlaintext = InterceptorChain.beforeEncrypt(plaintext, "3DES-$mode")
             
             val actualKey = key ?: generateKey()
             val actualIv = iv ?: cipher.generateIV()
 
             val ciphertext = cipher.encrypt(processedPlaintext, actualKey, actualIv)
-            
-            // 拦截器：加密后
             val processedCiphertext = InterceptorChain.afterEncrypt(ciphertext, "3DES-$mode")
 
-            return CipherResult(
+            CipherResult(
                 ciphertext = processedCiphertext,
                 key = actualKey,
                 iv = actualIv,
                 mode = mode,
                 algorithm = "DESede"
             )
-        } catch (e: ValidationException) {
-            throw e
-        } catch (e: Exception) {
-            throw EncryptionException("3DES-$mode encryption failed: ${e.message}", e)
         }
     }
 
@@ -145,41 +124,22 @@ class TripleDESBuilder {
      * 加密字符串
      */
     fun encrypt(plaintext: String): CipherResult {
-        if (plaintext.isEmpty()) {
-            throw ValidationException.emptyInput()
-        }
+        requireNotEmpty(plaintext, "plaintext")
         return encrypt(plaintext.toByteArray(Charsets.UTF_8))
     }
 
     /**
      * 解密字节数组
-     * 
-     * @throws DecryptionException 解密失败
-     * @throws ValidationException 输入验证失败
      */
     fun decrypt(ciphertext: ByteArray): ByteArray {
-        if (ciphertext.isEmpty()) {
-            throw ValidationException.emptyInput()
-        }
-        if (key == null) {
-            throw ValidationException.nullParameter("key")
-        }
-        if (iv == null && mode != "ECB") {
-            throw ValidationException.nullParameter("iv")
-        }
+        requireNotEmpty(ciphertext, "ciphertext")
+        val actualKey = requireNotNull(key, "key")
+        val actualIv = if (mode != "ECB") requireNotNull(iv, "iv") else ByteArray(8)
         
-        try {
-            // 拦截器：解密前
+        return wrapDecryptionException("3DES-$mode") {
             val processedCiphertext = InterceptorChain.beforeDecrypt(ciphertext, "3DES-$mode")
-
-            val plaintext = cipher.decrypt(processedCiphertext, key!!, iv ?: ByteArray(8))
-            
-            // 拦截器：解密后
-            return InterceptorChain.afterDecrypt(plaintext, "3DES-$mode")
-        } catch (e: ValidationException) {
-            throw e
-        } catch (e: Exception) {
-            throw DecryptionException("3DES-$mode decryption failed: ${e.message}", e)
+            val plaintext = cipher.decrypt(processedCiphertext, actualKey, actualIv)
+            InterceptorChain.afterDecrypt(plaintext, "3DES-$mode")
         }
     }
 
@@ -197,31 +157,23 @@ class TripleDESBuilder {
     /**
      * 解密并返回字符串
      */
-    fun decryptToString(ciphertext: ByteArray): String {
-        return String(decrypt(ciphertext), Charsets.UTF_8)
-    }
+    fun decryptToString(ciphertext: ByteArray): String = String(decrypt(ciphertext), Charsets.UTF_8)
 
     /**
      * 从CipherResult解密并返回字符串
      */
-    fun decryptToString(result: CipherResult): String {
-        return String(decrypt(result), Charsets.UTF_8)
-    }
+    fun decryptToString(result: CipherResult): String = String(decrypt(result), Charsets.UTF_8)
 
     /**
      * 生成随机密钥（168位）
      */
-    fun generateKey(): SecretKey {
-        try {
-            val keyGenerator = KeyGenerator.getInstance("DESede")
-            keyGenerator.init(168, SecureRandom())
-            return keyGenerator.generateKey()
-        } catch (e: Exception) {
-            throw EncryptionException("Failed to generate 3DES key: ${e.message}", e)
-        }
+    fun generateKey(): SecretKey = wrapCryptoException("Generate 3DES key") {
+        val keyGenerator = KeyGenerator.getInstance("DESede")
+        keyGenerator.init(168, SecureRandom())
+        keyGenerator.generateKey()
     }
     
-    private fun validateKey(key: SecretKey) {
+    private fun validateSecretKey(key: SecretKey) {
         if (key.algorithm != "DESede") {
             throw ValidationException("Invalid key algorithm: ${key.algorithm}, expected: DESede")
         }

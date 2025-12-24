@@ -2,8 +2,6 @@ package com.example.cryptokit.api.builders
 
 import com.example.cryptokit.core.asymmetric.ECCCipher
 import com.example.cryptokit.core.signature.ECDSASignature
-import com.example.cryptokit.exception.CryptoException
-import com.example.cryptokit.exception.SignatureException
 import com.example.cryptokit.exception.ValidationException
 import java.security.*
 import java.security.spec.PKCS8EncodedKeySpec
@@ -19,11 +17,13 @@ import java.security.spec.X509EncodedKeySpec
  * 
  * 默认配置：P-256曲线
  */
-class ECCBuilder {
+class ECCBuilder : AsymmetricBuilder<ECCBuilder>() {
+    
+    override fun self(): ECCBuilder = this
+    override fun expectedKeyAlgorithm(): String = "EC"
+    
     private var curve: String = "secp256r1"
     private var signatureAlgorithm: String = "SHA256withECDSA"
-    private var publicKey: PublicKey? = null
-    private var privateKey: PrivateKey? = null
 
     private val cipher: ECCCipher
         get() = ECCCipher(curve)
@@ -40,8 +40,8 @@ class ECCBuilder {
             "P-384", "SECP384R1" -> "secp384r1"
             "P-521", "SECP521R1" -> "secp521r1"
             else -> {
-                if (curve in SUPPORTED_CURVES) curve
-                else throw ValidationException("Unsupported curve: $curve, supported: $SUPPORTED_CURVES")
+                requireIn(curve, SUPPORTED_CURVES, "curve")
+                curve
             }
         }
     }
@@ -52,105 +52,50 @@ class ECCBuilder {
 
     fun signatureAlgorithm(algorithm: String): ECCBuilder = apply { this.signatureAlgorithm = algorithm }
 
-    fun publicKey(key: PublicKey): ECCBuilder = apply { 
-        validatePublicKey(key)
-        this.publicKey = key 
-    }
-
     fun publicKey(keyBytes: ByteArray): ECCBuilder = apply {
-        if (keyBytes.isEmpty()) {
-            throw ValidationException.emptyInput()
-        }
-        try {
+        requireNotEmpty(keyBytes, "publicKeyBytes")
+        val key = wrapCryptoException("Parse EC public key") {
             val keyFactory = KeyFactory.getInstance("EC")
-            this.publicKey = keyFactory.generatePublic(X509EncodedKeySpec(keyBytes))
-        } catch (e: Exception) {
-            throw ValidationException("Invalid EC public key bytes", e)
+            keyFactory.generatePublic(X509EncodedKeySpec(keyBytes))
         }
-    }
-
-    fun privateKey(key: PrivateKey): ECCBuilder = apply { 
-        validatePrivateKey(key)
-        this.privateKey = key 
+        this.publicKey = key
     }
 
     fun privateKey(keyBytes: ByteArray): ECCBuilder = apply {
-        if (keyBytes.isEmpty()) {
-            throw ValidationException.emptyInput()
-        }
-        try {
+        requireNotEmpty(keyBytes, "privateKeyBytes")
+        val key = wrapCryptoException("Parse EC private key") {
             val keyFactory = KeyFactory.getInstance("EC")
-            this.privateKey = keyFactory.generatePrivate(PKCS8EncodedKeySpec(keyBytes))
-        } catch (e: Exception) {
-            throw ValidationException("Invalid EC private key bytes", e)
+            keyFactory.generatePrivate(PKCS8EncodedKeySpec(keyBytes))
         }
-    }
-    
-    /**
-     * 同时设置公钥和私钥
-     */
-    fun keyPair(keyPair: KeyPair): ECCBuilder = apply {
-        this.publicKey = keyPair.public
-        this.privateKey = keyPair.private
+        this.privateKey = key
     }
 
     /**
      * 生成密钥对
      */
-    fun generateKeyPair(): KeyPair {
-        try {
-            return cipher.generateKeyPair()
-        } catch (e: Exception) {
-            throw CryptoException("Failed to generate EC key pair: ${e.message}", e)
-        }
+    fun generateKeyPair(): KeyPair = wrapCryptoException("Generate EC key pair") {
+        cipher.generateKeyPair()
     }
 
     /**
      * 签名
-     * 
-     * @throws SignatureException 签名失败时抛出
-     * @throws ValidationException 输入验证失败时抛出
      */
     fun sign(data: ByteArray): ByteArray {
-        if (data.isEmpty()) {
-            throw ValidationException.emptyInput()
-        }
-        if (privateKey == null) {
-            throw ValidationException.nullParameter("privateKey")
-        }
-        
-        try {
-            return signature.sign(data, privateKey!!)
-        } catch (e: ValidationException) {
-            throw e
-        } catch (e: Exception) {
-            throw SignatureException.signFailed(e)
-        }
+        requireNotEmpty(data, "data")
+        val key = requirePrivateKey()
+        return wrapSignatureException("sign") { signature.sign(data, key) }
     }
 
     fun sign(data: String): ByteArray = sign(data.toByteArray(Charsets.UTF_8))
 
     /**
      * 验证签名
-     * 
-     * @throws SignatureException 验证失败时抛出
-     * @throws ValidationException 输入验证失败时抛出
      */
     fun verify(data: ByteArray, signatureBytes: ByteArray): Boolean {
-        if (data.isEmpty() || signatureBytes.isEmpty()) {
-            throw ValidationException.emptyInput()
-        }
-        if (publicKey == null) {
-            throw ValidationException.nullParameter("publicKey")
-        }
-        
-        try {
-            return signature.verify(data, signatureBytes, publicKey!!)
-        } catch (e: ValidationException) {
-            throw e
-        } catch (e: Exception) {
-            throw SignatureException.verifyFailed(e)
-        }
+        requireNotEmpty(data, "data")
+        requireNotEmpty(signatureBytes, "signature")
+        val key = requirePublicKey()
+        return wrapSignatureException("verify") { signature.verify(data, signatureBytes, key) }
     }
 
     fun verify(data: String, signatureBytes: ByteArray): Boolean = 
@@ -158,34 +103,12 @@ class ECCBuilder {
 
     /**
      * ECDH密钥协商 - 派生共享密钥
-     * 
-     * @throws CryptoException 密钥协商失败时抛出
-     * @throws ValidationException 输入验证失败时抛出
      */
     fun deriveSharedSecret(peerPublicKey: PublicKey): ByteArray {
-        if (privateKey == null) {
-            throw ValidationException.nullParameter("privateKey")
-        }
+        val key = requirePrivateKey()
         validatePublicKey(peerPublicKey)
-        
-        try {
-            return cipher.deriveSharedSecret(privateKey!!, peerPublicKey)
-        } catch (e: ValidationException) {
-            throw e
-        } catch (e: Exception) {
-            throw CryptoException("ECDH key agreement failed: ${e.message}", e)
-        }
-    }
-    
-    private fun validatePublicKey(key: PublicKey) {
-        if (key.algorithm != "EC") {
-            throw ValidationException("Invalid public key algorithm: ${key.algorithm}, expected: EC")
-        }
-    }
-    
-    private fun validatePrivateKey(key: PrivateKey) {
-        if (key.algorithm != "EC") {
-            throw ValidationException("Invalid private key algorithm: ${key.algorithm}, expected: EC")
+        return wrapCryptoException("ECDH key agreement") {
+            cipher.deriveSharedSecret(key, peerPublicKey)
         }
     }
     

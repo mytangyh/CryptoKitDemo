@@ -1,7 +1,6 @@
 package com.example.cryptokit.api.builders
 
 import com.example.cryptokit.core.hash.StandardHashEngine
-import com.example.cryptokit.exception.CryptoException
 import com.example.cryptokit.exception.ValidationException
 import java.io.InputStream
 
@@ -15,7 +14,8 @@ import java.io.InputStream
  */
 class HashBuilder(
     private var algorithm: String = "SHA-256"
-) {
+) : BaseBuilder() {
+    
     private val engine: StandardHashEngine
         get() = StandardHashEngine(algorithm)
 
@@ -23,9 +23,7 @@ class HashBuilder(
      * 设置算法
      */
     fun algorithm(algorithm: String): HashBuilder = apply { 
-        if (algorithm.uppercase() !in SUPPORTED_ALGORITHMS) {
-            throw ValidationException("Unsupported hash algorithm: $algorithm, supported: $SUPPORTED_ALGORITHMS")
-        }
+        requireIn(algorithm.uppercase(), SUPPORTED_ALGORITHMS, "algorithm")
         this.algorithm = algorithm 
     }
 
@@ -37,25 +35,14 @@ class HashBuilder(
 
     /**
      * 计算摘要
-     * 
-     * @throws ValidationException 输入验证失败
-     * @throws CryptoException 计算失败
      */
     fun digest(data: ByteArray): ByteArray {
-        if (data.isEmpty()) {
-            throw ValidationException.emptyInput()
-        }
-        try {
-            return engine.hash(data)
-        } catch (e: Exception) {
-            throw CryptoException("Hash calculation failed: ${e.message}", e)
-        }
+        requireNotEmpty(data, "data")
+        return wrapCryptoException("Hash calculation") { engine.hash(data) }
     }
     
     fun digest(data: String): ByteArray {
-        if (data.isEmpty()) {
-            throw ValidationException.emptyInput()
-        }
+        requireNotEmpty(data, "data")
         return digest(data.toByteArray(Charsets.UTF_8))
     }
 
@@ -64,22 +51,11 @@ class HashBuilder(
 
     /**
      * 计算HMAC
-     * 
-     * @throws ValidationException 输入验证失败
-     * @throws CryptoException 计算失败
      */
     fun hmac(data: ByteArray, key: ByteArray): ByteArray {
-        if (data.isEmpty()) {
-            throw ValidationException.emptyInput()
-        }
-        if (key.isEmpty()) {
-            throw ValidationException("HMAC key cannot be empty")
-        }
-        try {
-            return engine.hmac(data, key)
-        } catch (e: Exception) {
-            throw CryptoException("HMAC calculation failed: ${e.message}", e)
-        }
+        requireNotEmpty(data, "data")
+        requireNotEmpty(key, "key")
+        return wrapCryptoException("HMAC calculation") { engine.hmac(data, key) }
     }
     
     fun hmac(data: String, key: ByteArray): ByteArray = hmac(data.toByteArray(Charsets.UTF_8), key)
@@ -92,13 +68,8 @@ class HashBuilder(
     /**
      * 计算流摘要（支持大文件）
      */
-    fun digestStream(inputStream: InputStream): ByteArray {
-        try {
-            return engine.hashStream(inputStream)
-        } catch (e: Exception) {
-            throw CryptoException("Stream hash calculation failed: ${e.message}", e)
-        }
-    }
+    fun digestStream(inputStream: InputStream): ByteArray = 
+        wrapCryptoException("Stream hash calculation") { engine.hashStream(inputStream) }
     
     /**
      * 获取当前算法的摘要长度（字节）
