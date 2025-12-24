@@ -178,6 +178,65 @@ class TripleDESBuilder : SymmetricBuilder<TripleDESBuilder>() {
         keyGenerator.generateKey()
     }
     
+    // ==================== 预协商密钥场景 API ====================
+    
+    /**
+     * 使用预协商密钥加密（客户端/服务端场景）
+     * 
+     * @param plaintext 明文
+     * @param keyBytes 共享密钥（24字节 = 192位）
+     * @param ivBytes 共享IV（8字节，仅CBC模式需要）
+     * @return 密文
+     */
+    fun encryptWithSharedKey(plaintext: ByteArray, keyBytes: ByteArray, ivBytes: ByteArray): ByteArray {
+        requireNotEmpty(plaintext, "plaintext")
+        requireNotEmpty(keyBytes, "key")
+        
+        val secretKey = SecretKeySpec(keyBytes, "DESede")
+        validateSecretKey(secretKey)
+        
+        if (mode == "CBC") {
+            requireNotEmpty(ivBytes, "iv")
+            if (ivBytes.size != 8) {
+                throw ValidationException("3DES IV must be 8 bytes, got: ${ivBytes.size}")
+            }
+        }
+        
+        return wrapEncryptionException("3DES-$mode") {
+            cipher.encrypt(plaintext, secretKey, ivBytes)
+        }
+    }
+    
+    fun encryptWithSharedKey(plaintext: String, keyBytes: ByteArray, ivBytes: ByteArray): ByteArray {
+        return encryptWithSharedKey(plaintext.toByteArray(Charsets.UTF_8), keyBytes, ivBytes)
+    }
+    
+    /**
+     * 使用预协商密钥解密
+     */
+    fun decryptWithSharedKey(ciphertext: ByteArray, keyBytes: ByteArray, ivBytes: ByteArray): ByteArray {
+        requireNotEmpty(ciphertext, "ciphertext")
+        requireNotEmpty(keyBytes, "key")
+        
+        val secretKey = SecretKeySpec(keyBytes, "DESede")
+        validateSecretKey(secretKey)
+        
+        if (mode == "CBC") {
+            requireNotEmpty(ivBytes, "iv")
+            if (ivBytes.size != 8) {
+                throw ValidationException("3DES IV must be 8 bytes, got: ${ivBytes.size}")
+            }
+        }
+        
+        return wrapDecryptionException("3DES-$mode") {
+            cipher.decrypt(ciphertext, secretKey, ivBytes)
+        }
+    }
+    
+    fun decryptWithSharedKeyToString(ciphertext: ByteArray, keyBytes: ByteArray, ivBytes: ByteArray): String {
+        return String(decryptWithSharedKey(ciphertext, keyBytes, ivBytes), Charsets.UTF_8)
+    }
+    
     private fun validateSecretKey(key: SecretKey) {
         // 使用不区分大小写的比较，因为不同JCE provider可能返回不同大小写
         if (!key.algorithm.equals("DESede", ignoreCase = true)) {
@@ -187,5 +246,10 @@ class TripleDESBuilder : SymmetricBuilder<TripleDESBuilder>() {
     
     companion object {
         private val SUPPORTED_MODES = listOf("CBC", "ECB")
+        
+        /**
+         * 创建用于预协商密钥场景的 3DES-CBC Builder
+         */
+        fun forSharedKey(): TripleDESBuilder = TripleDESBuilder().cbc()
     }
 }
