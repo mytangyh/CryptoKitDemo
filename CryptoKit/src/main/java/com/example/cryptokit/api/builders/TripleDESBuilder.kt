@@ -3,6 +3,7 @@ package com.example.cryptokit.api.builders
 import com.example.cryptokit.api.extensions.fromHex
 import com.example.cryptokit.api.results.CipherResult
 import com.example.cryptokit.core.symmetric.TripleDESCipher
+import com.example.cryptokit.interceptor.InterceptorChain
 import java.security.SecureRandom
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
@@ -75,13 +76,19 @@ class TripleDESBuilder {
      * 加密字节数组
      */
     fun encrypt(plaintext: ByteArray): CipherResult {
+        // 拦截器：加密前
+        val processedPlaintext = InterceptorChain.beforeEncrypt(plaintext, "3DES-$mode")
+        
         val actualKey = key ?: generateKey()
         val actualIv = iv ?: cipher.generateIV()
 
-        val ciphertext = cipher.encrypt(plaintext, actualKey, actualIv)
+        val ciphertext = cipher.encrypt(processedPlaintext, actualKey, actualIv)
+        
+        // 拦截器：加密后
+        val processedCiphertext = InterceptorChain.afterEncrypt(ciphertext, "3DES-$mode")
 
         return CipherResult(
-            ciphertext = ciphertext,
+            ciphertext = processedCiphertext,
             key = actualKey,
             iv = actualIv,
             mode = mode,
@@ -102,8 +109,14 @@ class TripleDESBuilder {
     fun decrypt(ciphertext: ByteArray): ByteArray {
         requireNotNull(key) { "Key must be set for decryption" }
         requireNotNull(iv) { "IV must be set for decryption" }
+        
+        // 拦截器：解密前
+        val processedCiphertext = InterceptorChain.beforeDecrypt(ciphertext, "3DES-$mode")
 
-        return cipher.decrypt(ciphertext, key!!, iv!!)
+        val plaintext = cipher.decrypt(processedCiphertext, key!!, iv!!)
+        
+        // 拦截器：解密后
+        return InterceptorChain.afterDecrypt(plaintext, "3DES-$mode")
     }
 
     /**

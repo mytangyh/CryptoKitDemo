@@ -2,6 +2,7 @@ package com.example.cryptokit.api.builders
 
 import com.example.cryptokit.core.asymmetric.RSACipher
 import com.example.cryptokit.core.signature.RSASignature
+import com.example.cryptokit.interceptor.InterceptorChain
 import java.security.*
 import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.X509EncodedKeySpec
@@ -58,14 +59,28 @@ class RSABuilder {
 
     fun encrypt(plaintext: ByteArray): ByteArray {
         requireNotNull(publicKey) { "Public key must be set for encryption" }
-        return cipher.encrypt(plaintext, publicKey!!)
+        
+        // 拦截器：加密前
+        val processedPlaintext = InterceptorChain.beforeEncrypt(plaintext, "RSA-$keySize")
+        
+        val ciphertext = cipher.encrypt(processedPlaintext, publicKey!!)
+        
+        // 拦截器：加密后
+        return InterceptorChain.afterEncrypt(ciphertext, "RSA-$keySize")
     }
 
     fun encrypt(plaintext: String): ByteArray = encrypt(plaintext.toByteArray(Charsets.UTF_8))
 
     fun decrypt(ciphertext: ByteArray): ByteArray {
         requireNotNull(privateKey) { "Private key must be set for decryption" }
-        return cipher.decrypt(ciphertext, privateKey!!)
+        
+        // 拦截器：解密前
+        val processedCiphertext = InterceptorChain.beforeDecrypt(ciphertext, "RSA-$keySize")
+        
+        val plaintext = cipher.decrypt(processedCiphertext, privateKey!!)
+        
+        // 拦截器：解密后
+        return InterceptorChain.afterDecrypt(plaintext, "RSA-$keySize")
     }
 
     fun decryptToString(ciphertext: ByteArray): String = String(decrypt(ciphertext), Charsets.UTF_8)

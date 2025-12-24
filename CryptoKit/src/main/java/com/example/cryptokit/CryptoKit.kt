@@ -98,6 +98,43 @@ object CryptoKit {
      */
     val keyManager: KeyManager get() = KeyManagerImpl.instance
 
+    // ==================== 拦截器 ====================
+
+    /**
+     * 拦截器链管理
+     */
+    val interceptors: com.example.cryptokit.interceptor.InterceptorChain
+        get() = com.example.cryptokit.interceptor.InterceptorChain
+
+    /**
+     * 启用调试模式（日志+性能监控）
+     */
+    fun enableDebugMode() {
+        interceptors.enableDebugMode()
+    }
+
+    /**
+     * 启用日志
+     */
+    fun enableLogging(tag: String = "CryptoKit") {
+        interceptors.enableLogging(tag)
+    }
+
+    /**
+     * 启用性能监控
+     */
+    fun enablePerformanceMonitoring(warningThresholdMs: Long = 100) {
+        interceptors.enablePerformanceMonitoring(warningThresholdMs)
+    }
+
+    /**
+     * 禁用拦截器
+     */
+    fun disableInterceptors() {
+        interceptors.disable()
+        interceptors.clearInterceptors()
+    }
+
     // ==================== 快捷方法 ====================
 
     /**
