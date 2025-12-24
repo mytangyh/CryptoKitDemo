@@ -366,6 +366,139 @@ class AESBuilder : SymmetricBuilder<AESBuilder>() {
         return keyGenerator.generateKey()
     }
     
+    // ==================== 预协商密钥场景 API ====================
+    
+    /**
+     * 使用预协商密钥加密（客户端/服务端场景）
+     * 
+     * 适用于客户端与服务端事先协商好 key 和 iv 的场景。
+     * **推荐使用 CBC 模式**，GCM 模式在此场景下有安全风险。
+     * 
+     * ## 使用示例
+     * ```kotlin
+     * // 客户端和服务端共享的密钥和IV
+     * val sharedKey = "0123456789abcdef".toByteArray()  // 16字节 = 128位
+     * val sharedIv = "1234567890123456".toByteArray()   // 16字节
+     * 
+     * // 加密发送
+     * val ciphertext = CryptoKit.aes()
+     *     .cbc()
+     *     .encryptWithSharedKey("Hello Server", sharedKey, sharedIv)
+     * 
+     * // 服务端解密
+     * val plaintext = CryptoKit.aes()
+     *     .cbc()
+     *     .decryptWithSharedKey(ciphertext, sharedKey, sharedIv)
+     * ```
+     * 
+     * @param plaintext 明文字节数组
+     * @param keyBytes 共享密钥字节数组（16/24/32 字节）
+     * @param ivBytes 共享IV字节数组（CBC/CTR 使用 16 字节）
+     * @return 密文字节数组
+     * @throws ValidationException GCM 模式不允许使用此方法
+     */
+    fun encryptWithSharedKey(plaintext: ByteArray, keyBytes: ByteArray, ivBytes: ByteArray): ByteArray {
+        requireNotEmpty(plaintext, "plaintext")
+        requireNotEmpty(keyBytes, "key")
+        requireNotEmpty(ivBytes, "iv")
+        
+        // GCM 模式不允许复用 IV
+        if (mode == "GCM") {
+            CryptoLogger.logSecurityWarning("AES-GCM", "GCM模式不应使用固定IV，请使用CBC或CTR模式")
+            throw ValidationException(
+                "GCM mode should not use fixed IV for security reasons. " +
+                "Use CBC or CTR mode for pre-shared key scenarios, or use encrypt() for GCM."
+            )
+        }
+        
+        val secretKey = SecretKeySpec(keyBytes, "AES")
+        validateSecretKey(secretKey)
+        validateIvSize(ivBytes, 16)
+        
+        val startTime = System.currentTimeMillis()
+        CryptoLogger.d("SharedKey", "[AES-$mode] Encrypting with pre-shared key")
+        
+        return wrapEncryptionException("AES-$mode") {
+            val processedPlaintext = InterceptorChain.beforeEncrypt(plaintext, "AES-$mode")
+            val ciphertext = cipher.encrypt(processedPlaintext, secretKey, ivBytes)
+            val processedCiphertext = InterceptorChain.afterEncrypt(ciphertext, "AES-$mode")
+            
+            val duration = System.currentTimeMillis() - startTime
+            CryptoLogger.logEncryptComplete("AES-$mode", plaintext.size, ciphertext.size, duration)
+            
+            processedCiphertext
+        }
+    }
+    
+    /**
+     * 使用预协商密钥加密字符串
+     */
+    fun encryptWithSharedKey(plaintext: String, keyBytes: ByteArray, ivBytes: ByteArray): ByteArray {
+        return encryptWithSharedKey(plaintext.toByteArray(Charsets.UTF_8), keyBytes, ivBytes)
+    }
+    
+    /**
+     * 使用预协商密钥解密（客户端/服务端场景）
+     * 
+     * @param ciphertext 密文字节数组
+     * @param keyBytes 共享密钥字节数组
+     * @param ivBytes 共享IV字节数组
+     * @return 明文字节数组
+     */
+    fun decryptWithSharedKey(ciphertext: ByteArray, keyBytes: ByteArray, ivBytes: ByteArray): ByteArray {
+        requireNotEmpty(ciphertext, "ciphertext")
+        requireNotEmpty(keyBytes, "key")
+        requireNotEmpty(ivBytes, "iv")
+        
+        if (mode == "GCM") {
+            throw ValidationException(
+                "GCM mode should not use fixed IV for security reasons. " +
+                "Use CBC or CTR mode for pre-shared key scenarios."
+            )
+        }
+        
+        val secretKey = SecretKeySpec(keyBytes, "AES")
+        validateSecretKey(secretKey)
+        validateIvSize(ivBytes, 16)
+        
+        val startTime = System.currentTimeMillis()
+        CryptoLogger.d("SharedKey", "[AES-$mode] Decrypting with pre-shared key")
+        
+        return wrapDecryptionException("AES-$mode") {
+            val processedCiphertext = InterceptorChain.beforeDecrypt(ciphertext, "AES-$mode")
+            val plaintext = cipher.decrypt(processedCiphertext, secretKey, ivBytes)
+            
+            val duration = System.currentTimeMillis() - startTime
+            CryptoLogger.logDecryptComplete("AES-$mode", ciphertext.size, plaintext.size, duration)
+            
+            InterceptorChain.afterDecrypt(plaintext, "AES-$mode")
+        }
+    }
+    
+    /**
+     * 使用预协商密钥解密并返回字符串
+     */
+    fun decryptWithSharedKeyToString(ciphertext: ByteArray, keyBytes: ByteArray, ivBytes: ByteArray): String {
+        return String(decryptWithSharedKey(ciphertext, keyBytes, ivBytes), Charsets.UTF_8)
+    }
+    
+    /**
+     * 从十六进制字符串创建密钥和IV的便捷方法
+     * 
+     * ## 使用示例
+     * ```kotlin
+     * val (key, iv) = CryptoKit.aes().parseSharedKeyHex(
+     *     keyHex = "0123456789abcdef0123456789abcdef",  // 32字符 = 16字节 = 128位
+     *     ivHex = "fedcba9876543210fedcba9876543210"    // 32字符 = 16字节
+     * )
+     * ```
+     */
+    fun parseSharedKeyHex(keyHex: String, ivHex: String): Pair<ByteArray, ByteArray> {
+        val keyBytes = wrapCryptoException("Parse key hex") { keyHex.fromHex() }
+        val ivBytes = wrapCryptoException("Parse iv hex") { ivHex.fromHex() }
+        return Pair(keyBytes, ivBytes)
+    }
+    
     private fun validateSecretKey(key: SecretKey) {
         if (key.algorithm != "AES") {
             throw ValidationException("Invalid key algorithm: ${key.algorithm}, expected: AES")
@@ -379,5 +512,20 @@ class AESBuilder : SymmetricBuilder<AESBuilder>() {
     companion object {
         private val VALID_KEY_SIZES = listOf(128, 192, 256)
         private val SUPPORTED_MODES = listOf("GCM", "CBC", "CTR", "ECB")
+        
+        /**
+         * 创建用于预协商密钥场景的 AES-CBC Builder
+         * 
+         * 这是推荐用于客户端/服务端固定密钥通信的便捷方法。
+         * 
+         * ## 使用示例
+         * ```kotlin
+         * val encrypted = CryptoKit.aes()
+         *     .forSharedKey()  // 自动设置为 CBC 模式
+         *     .encryptWithSharedKey(data, key, iv)
+         * ```
+         */
+        fun forSharedKey(): AESBuilder = AESBuilder().cbc()
     }
 }
+

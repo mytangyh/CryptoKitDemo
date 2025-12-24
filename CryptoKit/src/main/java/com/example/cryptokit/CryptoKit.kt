@@ -135,6 +135,33 @@ object CryptoKit {
     fun aes(): AESBuilder = AESBuilder()
 
     /**
+     * 创建用于预协商密钥场景的 AES-CBC Builder
+     *
+     * 适用于客户端与服务端事先协商好 key 和 iv 的场景。
+     * 自动使用 CBC 模式，这是此场景下最安全的选择。
+     *
+     * ## 使用示例
+     * ```kotlin
+     * // 客户端和服务端预先协商的密钥
+     * val sharedKey = "0123456789abcdef".toByteArray()  // 16字节
+     * val sharedIv = "fedcba9876543210".toByteArray()   // 16字节
+     *
+     * // 客户端加密发送
+     * val ciphertext = CryptoKit.aesWithSharedKey()
+     *     .encryptWithSharedKey("Hello Server", sharedKey, sharedIv)
+     *
+     * // 服务端解密
+     * val plaintext = CryptoKit.aesWithSharedKey()
+     *     .decryptWithSharedKeyToString(ciphertext, sharedKey, sharedIv)
+     * ```
+     *
+     * @return 配置为 CBC 模式的 [AESBuilder] 实例
+     * @see AESBuilder.encryptWithSharedKey
+     * @see AESBuilder.decryptWithSharedKey
+     */
+    fun aesWithSharedKey(): AESBuilder = AESBuilder.forSharedKey()
+
+    /**
      * 创建 3DES 加密 Builder
      *
      * **⚠️ 警告**: 3DES 已不推荐用于新项目，仅用于兼容旧系统。
