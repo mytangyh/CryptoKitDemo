@@ -9,7 +9,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import com.example.cryptokit.*
+import com.example.cryptokit.CryptoKit
+import com.example.cryptokit.api.extensions.*
 import java.security.KeyPair
 
 class MainActivity : AppCompatActivity() {
@@ -398,8 +399,8 @@ class MainActivity : AppCompatActivity() {
             val startTime = System.currentTimeMillis()
 
             // 模拟Alice和Bob两方
-            val aliceBuilder = CryptoKit.ecc().curve("P-256")
-            val bobBuilder = CryptoKit.ecc().curve("P-256")
+            val aliceBuilder = CryptoKit.ecc().p256()
+            val bobBuilder = CryptoKit.ecc().p256()
             
             val aliceKeyPair = aliceBuilder.generateKeyPair()
             val bobKeyPair = bobBuilder.generateKeyPair()

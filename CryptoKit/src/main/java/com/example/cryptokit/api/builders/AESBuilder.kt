@@ -1,11 +1,11 @@
-package com.example.cryptokit
+package com.example.cryptokit.api.builders
 
+import com.example.cryptokit.api.extensions.fromHex
+import com.example.cryptokit.api.results.CipherResult
+import com.example.cryptokit.core.symmetric.AESCipher
 import java.security.SecureRandom
-import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
-import javax.crypto.spec.GCMParameterSpec
-import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
 /**
@@ -13,30 +13,57 @@ import javax.crypto.spec.SecretKeySpec
  * 默认配置：AES-256-GCM，自动生成密钥和IV
  */
 class AESBuilder {
-    private var mode: CipherMode = CipherMode.GCM
-    private var padding: PaddingScheme = PaddingScheme.NO_PADDING
+    private var mode: String = "GCM"
+    private var padding: String = "NoPadding"
     private var keySize: Int = 256
     private var key: SecretKey? = null
     private var iv: ByteArray? = null
     private var aad: ByteArray? = null
     private var gcmTagLength: Int = 128
 
+    private val cipher: AESCipher
+        get() = AESCipher(mode, padding, gcmTagLength)
+
     /**
      * 设置加密模式
      */
-    fun mode(mode: CipherMode): AESBuilder = apply { this.mode = mode }
+    fun mode(mode: String): AESBuilder = apply { this.mode = mode }
+
+    /**
+     * CBC模式
+     */
+    fun cbc(): AESBuilder = apply { 
+        this.mode = "CBC"
+        this.padding = "PKCS5Padding"
+    }
+
+    /**
+     * GCM模式（默认推荐）
+     */
+    fun gcm(): AESBuilder = apply { 
+        this.mode = "GCM"
+        this.padding = "NoPadding"
+    }
+
+    /**
+     * CTR模式
+     */
+    fun ctr(): AESBuilder = apply { 
+        this.mode = "CTR"
+        this.padding = "NoPadding"
+    }
 
     /**
      * 设置填充方案
      */
-    fun padding(padding: PaddingScheme): AESBuilder = apply { this.padding = padding }
+    fun padding(padding: String): AESBuilder = apply { this.padding = padding }
 
     /**
      * 设置密钥长度（位）
      */
-    fun keySize(size: Int): AESBuilder = apply { 
+    fun keySize(size: Int): AESBuilder = apply {
         require(size in listOf(128, 192, 256)) { "AES key size must be 128, 192, or 256 bits" }
-        this.keySize = size 
+        this.keySize = size
     }
 
     /**
@@ -47,15 +74,15 @@ class AESBuilder {
     /**
      * 从字节数组设置密钥
      */
-    fun key(keyBytes: ByteArray): AESBuilder = apply { 
-        this.key = SecretKeySpec(keyBytes, "AES") 
+    fun key(keyBytes: ByteArray): AESBuilder = apply {
+        this.key = SecretKeySpec(keyBytes, "AES")
     }
 
     /**
      * 从十六进制字符串设置密钥
      */
-    fun key(keyHex: String): AESBuilder = apply { 
-        this.key = SecretKeySpec(keyHex.fromHex(), "AES") 
+    fun key(keyHex: String): AESBuilder = apply {
+        this.key = SecretKeySpec(keyHex.fromHex(), "AES")
     }
 
     /**
@@ -78,27 +105,9 @@ class AESBuilder {
      */
     fun encrypt(plaintext: ByteArray): CipherResult {
         val actualKey = key ?: generateKey(keySize)
-        val actualIv = iv ?: generateIV()
+        val actualIv = iv ?: cipher.generateIV()
         
-        val transformation = buildTransformation()
-        val cipher = Cipher.getInstance(transformation)
-        
-        when (mode) {
-            CipherMode.GCM -> {
-                val gcmSpec = GCMParameterSpec(gcmTagLength, actualIv)
-                cipher.init(Cipher.ENCRYPT_MODE, actualKey, gcmSpec)
-                aad?.let { cipher.updateAAD(it) }
-            }
-            CipherMode.ECB -> {
-                cipher.init(Cipher.ENCRYPT_MODE, actualKey)
-            }
-            else -> {
-                val ivSpec = IvParameterSpec(actualIv)
-                cipher.init(Cipher.ENCRYPT_MODE, actualKey, ivSpec)
-            }
-        }
-        
-        val ciphertext = cipher.doFinal(plaintext)
+        val ciphertext = cipher.encrypt(plaintext, actualKey, actualIv)
         
         return CipherResult(
             ciphertext = ciphertext,
@@ -123,25 +132,7 @@ class AESBuilder {
         requireNotNull(key) { "Key must be set for decryption" }
         requireNotNull(iv) { "IV must be set for decryption" }
         
-        val transformation = buildTransformation()
-        val cipher = Cipher.getInstance(transformation)
-        
-        when (mode) {
-            CipherMode.GCM -> {
-                val gcmSpec = GCMParameterSpec(gcmTagLength, iv)
-                cipher.init(Cipher.DECRYPT_MODE, key, gcmSpec)
-                aad?.let { cipher.updateAAD(it) }
-            }
-            CipherMode.ECB -> {
-                cipher.init(Cipher.DECRYPT_MODE, key)
-            }
-            else -> {
-                val ivSpec = IvParameterSpec(iv)
-                cipher.init(Cipher.DECRYPT_MODE, key, ivSpec)
-            }
-        }
-        
-        return cipher.doFinal(ciphertext)
+        return cipher.decrypt(ciphertext, key!!, iv!!)
     }
 
     /**
@@ -175,26 +166,5 @@ class AESBuilder {
         val keyGenerator = KeyGenerator.getInstance("AES")
         keyGenerator.init(size, SecureRandom())
         return keyGenerator.generateKey()
-    }
-
-    /**
-     * 生成随机IV
-     */
-    fun generateIV(): ByteArray {
-        val ivSize = when (mode) {
-            CipherMode.GCM -> 12  // GCM推荐使用12字节IV
-            else -> 16           // 其他模式使用16字节IV
-        }
-        val iv = ByteArray(ivSize)
-        SecureRandom().nextBytes(iv)
-        return iv
-    }
-
-    private fun buildTransformation(): String {
-        val paddingName = when (mode) {
-            CipherMode.GCM, CipherMode.CTR, CipherMode.CFB, CipherMode.OFB -> PaddingScheme.NO_PADDING.paddingName
-            else -> padding.paddingName
-        }
-        return "AES/${mode.modeName}/$paddingName"
     }
 }
