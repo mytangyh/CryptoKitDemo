@@ -3,6 +3,7 @@ package com.example.cryptokit
 import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
+import android.security.keystore.StrongBoxUnavailableException
 import java.security.*
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
