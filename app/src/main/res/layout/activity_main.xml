@@ -670,5 +670,179 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- 拦截器演示 -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📊 拦截器 (日志/性能)"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#333333"
+                    android:layout_marginBottom="8dp" />
+
+                <CheckBox
+                    android:id="@+id/cbEnableLogging"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="启用日志拦截器" />
+
+                <CheckBox
+                    android:id="@+id/cbEnablePerformance"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="启用性能监控拦截器"
+                    android:layout_marginBottom="8dp" />
+
+                <TextView
+                    android:id="@+id/tvInterceptorStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="拦截器状态: 已禁用"
+                    android:textSize="12sp"
+                    android:textColor="#666666"
+                    android:fontFamily="monospace" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- PBKDF2密钥派生 -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🔐 PBKDF2 密钥派生"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#333333"
+                    android:layout_marginBottom="12dp" />
+
+                <Button
+                    android:id="@+id/btnPbkdf2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="密钥派生"
+                    android:backgroundTint="#E91E63" />
+
+                <TextView
+                    android:id="@+id/tvPbkdf2Result"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textSize="12sp"
+                    android:textColor="#555555"
+                    android:fontFamily="monospace" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 工具类演示 -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🛠️ 工具类"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#333333"
+                    android:layout_marginBottom="12dp" />
+
+                <Button
+                    android:id="@+id/btnUtils"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="生成随机数 / UUID"
+                    android:backgroundTint="#3F51B5" />
+
+                <TextView
+                    android:id="@+id/tvUtilsResult"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textSize="12sp"
+                    android:textColor="#555555"
+                    android:fontFamily="monospace" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- KeyManager演示 -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🗝️ Android Keystore"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#333333"
+                    android:layout_marginBottom="12dp" />
+
+                <Button
+                    android:id="@+id/btnKeystore"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Keystore 密钥管理"
+                    android:backgroundTint="#673AB7" />
+
+                <TextView
+                    android:id="@+id/tvKeystoreResult"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textSize="12sp"
+                    android:textColor="#555555"
+                    android:fontFamily="monospace" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
     </LinearLayout>
 </ScrollView>

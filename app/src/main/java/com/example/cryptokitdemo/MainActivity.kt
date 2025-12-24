@@ -2,6 +2,7 @@ package com.example.cryptokitdemo
 
 import android.os.Bundle
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.RadioButton
 import android.widget.RadioGroup
@@ -26,6 +27,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvHashResult: TextView
     private lateinit var tvEncodeResult: TextView
     private lateinit var tvEcdhResult: TextView
+    private lateinit var tvInterceptorStatus: TextView
+    private lateinit var tvPbkdf2Result: TextView
+    private lateinit var tvUtilsResult: TextView
+    private lateinit var tvKeystoreResult: TextView
+
+    // CheckBoxes
+    private lateinit var cbEnableLogging: CheckBox
+    private lateinit var cbEnablePerformance: CheckBox
 
     // RadioGroups
     private lateinit var rgAesMode: RadioGroup
@@ -76,6 +85,14 @@ class MainActivity : AppCompatActivity() {
         rgSignType = findViewById(R.id.rgSignType)
         rgHashAlgorithm = findViewById(R.id.rgHashAlgorithm)
         rgEccCurve = findViewById(R.id.rgEccCurve)
+
+        // New views
+        tvInterceptorStatus = findViewById(R.id.tvInterceptorStatus)
+        tvPbkdf2Result = findViewById(R.id.tvPbkdf2Result)
+        tvUtilsResult = findViewById(R.id.tvUtilsResult)
+        tvKeystoreResult = findViewById(R.id.tvKeystoreResult)
+        cbEnableLogging = findViewById(R.id.cbEnableLogging)
+        cbEnablePerformance = findViewById(R.id.cbEnablePerformance)
     }
 
     private fun setupListeners() {
@@ -87,6 +104,13 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btnHash).setOnClickListener { demoHash() }
         findViewById<Button>(R.id.btnEncode).setOnClickListener { demoEncoding() }
         findViewById<Button>(R.id.btnEcdh).setOnClickListener { demoEcdh() }
+        findViewById<Button>(R.id.btnPbkdf2).setOnClickListener { demoPbkdf2() }
+        findViewById<Button>(R.id.btnUtils).setOnClickListener { demoUtils() }
+        findViewById<Button>(R.id.btnKeystore).setOnClickListener { demoKeystore() }
+
+        // 拦截器开关
+        cbEnableLogging.setOnCheckedChangeListener { _, _ -> updateInterceptors() }
+        cbEnablePerformance.setOnCheckedChangeListener { _, _ -> updateInterceptors() }
     }
 
     // ==================== AES加密演示 ====================
@@ -635,5 +659,175 @@ class MainActivity : AppCompatActivity() {
 
     private fun showToast(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    }
+
+    // ==================== 拦截器控制 ====================
+    private fun updateInterceptors() {
+        CryptoKit.disableInterceptors()
+        
+        val enableLogging = cbEnableLogging.isChecked
+        val enablePerformance = cbEnablePerformance.isChecked
+
+        if (enableLogging) {
+            CryptoKit.enableLogging("CryptoKitDemo")
+        }
+        if (enablePerformance) {
+            CryptoKit.enablePerformanceMonitoring(50)
+        }
+
+        val status = when {
+            enableLogging && enablePerformance -> "✅ 日志 + 性能监控"
+            enableLogging -> "✅ 日志拦截器"
+            enablePerformance -> "✅ 性能监控拦截器"
+            else -> "❌ 已禁用"
+        }
+        tvInterceptorStatus.text = "拦截器状态: $status\n提示: 勾选后执行加密操作，查看Logcat日志"
+        
+        showToast("拦截器设置已更新")
+    }
+
+    // ==================== PBKDF2密钥派生 ====================
+    private fun demoPbkdf2() {
+        try {
+            val password = getInputText()
+            val startTime = System.currentTimeMillis()
+            
+            // 生成随机盐
+            val salt = CryptoKit.secureRandom(16)
+            
+            // 派生256位AES密钥
+            val derivedKey = CryptoKit.deriveKey(
+                password = password,
+                salt = salt,
+                iterations = 10000,
+                keyLength = 256
+            )
+            
+            // 再派生一次验证一致性
+            val derivedKey2 = CryptoKit.deriveKey(
+                password = password,
+                salt = salt,
+                iterations = 10000,
+                keyLength = 256
+            )
+            
+            val isEqual = derivedKey.contentEquals(derivedKey2)
+            val duration = System.currentTimeMillis() - startTime
+
+            val output = buildString {
+                appendLine("🔐 PBKDF2 密钥派生结果")
+                appendLine()
+                appendLine("📝 密码: $password")
+                appendLine()
+                appendLine("⚙️ 配置: 迭代=10000次, 密钥长度=256位")
+                appendLine()
+                appendLine("🧂 随机盐 (Hex):")
+                appendLine(salt.toHex())
+                appendLine()
+                appendLine("🔑 派生密钥 (Hex):")
+                appendLine(derivedKey.toHex())
+                appendLine()
+                appendLine("✅ 重复派生一致性: $isEqual")
+                appendLine()
+                appendLine("📊 密钥长度: ${derivedKey.size} 字节")
+                appendLine()
+                appendLine("⏱️ 耗时: ${duration}ms")
+            }
+            
+            tvPbkdf2Result.text = output
+            showToast("PBKDF2密钥派生成功")
+        } catch (e: Exception) {
+            tvPbkdf2Result.text = "❌ 错误: ${e.message}"
+            showToast("PBKDF2失败")
+        }
+    }
+
+    // ==================== 工具类演示 ====================
+    private fun demoUtils() {
+        try {
+            // 生成各种随机数
+            val random16 = CryptoKit.secureRandom(16)
+            val random32 = CryptoKit.secureRandom(32)
+            val uuid1 = CryptoKit.randomUUID()
+            val uuid2 = CryptoKit.randomUUID()
+
+            val output = buildString {
+                appendLine("🛠️ 工具类演示")
+                appendLine()
+                appendLine("🎲 安全随机数 (16字节):")
+                appendLine(random16.toHex())
+                appendLine()
+                appendLine("🎲 安全随机数 (32字节):")
+                appendLine(random32.toHex())
+                appendLine()
+                appendLine("🎫 UUID 1:")
+                appendLine(uuid1)
+                appendLine()
+                appendLine("🎫 UUID 2:")
+                appendLine(uuid2)
+                appendLine()
+                appendLine("💬 说明: 每次调用都会生成不同的随机值")
+            }
+            
+            tvUtilsResult.text = output
+            showToast("工具类演示完成")
+        } catch (e: Exception) {
+            tvUtilsResult.text = "❌ 错误: ${e.message}"
+            showToast("工具类演示失败")
+        }
+    }
+
+    // ==================== Android Keystore演示 ====================
+    private fun demoKeystore() {
+        try {
+            val keyAlias = "demo_aes_key_${System.currentTimeMillis()}"
+            val startTime = System.currentTimeMillis()
+            
+            // 尝试在Keystore中生成AES密钥
+            val keyManager = CryptoKit.keyManager
+            
+            // 列出当前所有密钥
+            val existingKeys: List<String> = try {
+                keyManager.listAliases()
+            } catch (e: Exception) {
+                emptyList()
+            }
+            
+            val duration = System.currentTimeMillis() - startTime
+
+            val output = buildString {
+                appendLine("🗑️ Android Keystore 演示")
+                appendLine()
+                appendLine("ℹ️ KeyManager 接口:")
+                appendLine("  - generateAESKeyInKeystore(alias)")
+                appendLine("  - generateRSAKeyPairInKeystore(alias)")
+                appendLine("  - generateECKeyPairInKeystore(alias)")
+                appendLine("  - getKey(alias)")
+                appendLine("  - deleteKey(alias)")
+                appendLine("  - listAliases()")
+                appendLine("  - containsAlias(alias)")
+                appendLine()
+                appendLine("🔑 当前 Keystore 密钥数: ${existingKeys.size}")
+                if (existingKeys.isNotEmpty()) {
+                    appendLine()
+                    appendLine("📝 密钥别名:")
+                    existingKeys.take(5).forEach { alias -> appendLine("  - $alias") }
+                    if (existingKeys.size > 5) {
+                        appendLine("  ... 还有 ${existingKeys.size - 5} 个")
+                    }
+                }
+                appendLine()
+                appendLine("⚠️ 注意: Keystore密钥存储在硬件安全模块中")
+                appendLine("🛡️ 密钥不可导出，提供最高级别安全性")
+                appendLine()
+                appendLine("⏱️ 耗时: ${duration}ms")
+            }
+            
+            tvKeystoreResult.text = output
+            showToast("Keystore演示完成")
+        } catch (e: Exception) {
+            tvKeystoreResult.text = "❌ 错误: ${e.message}\n\n说明: 模拟器可能不支持部分Keystore功能"
+            showToast("Keystore演示失败")
+        }
     }
 }
