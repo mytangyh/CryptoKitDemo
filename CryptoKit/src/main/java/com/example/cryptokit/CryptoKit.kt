@@ -5,25 +5,42 @@ import com.example.cryptokit.api.extensions.toHex
 import com.example.cryptokit.core.encoding.Base64Encoder
 import com.example.cryptokit.core.encoding.HexEncoder
 import com.example.cryptokit.core.hash.StandardHashEngine
+import com.example.cryptokit.core.stream.StreamCipher
 import com.example.cryptokit.keymanager.KeyManager
 import com.example.cryptokit.keymanager.KeyManagerImpl
+import com.example.cryptokit.registry.AlgorithmRegistry
 import com.example.cryptokit.util.SecureRandomUtil
+import com.example.cryptokit.util.SecureUtils
+import java.io.InputStream
+import java.io.OutputStream
+import javax.crypto.SecretKey
 
 /**
  * CryptoKit - Android加密套件统一入口
+ * 
+ * 金融级特性：
+ * - 线程安全
+ * - 敏感数据自动擦除
+ * - 完善的异常处理
+ * - 流式加密支持
+ * - 可扩展算法注册
  *
  * 使用示例:
  * ```kotlin
  * // 零配置AES加密
- * val result = CryptoKit.aes().encrypt("Hello, World!")
- * val plaintext = CryptoKit.aes().decrypt(result)
+ * CryptoKit.aes().encrypt("Hello, World!").use { result ->
+ *     val plaintext = CryptoKit.aes().decrypt(result)
+ * }
  *
  * // RSA加密
  * val keyPair = CryptoKit.rsa().generateKeyPair()
  * val encrypted = CryptoKit.rsa().publicKey(keyPair.public).encrypt("Secret")
  *
- * // 混合加密
+ * // 混合加密（大数据）
  * val hybridResult = CryptoKit.hybrid().publicKey(publicKey).encrypt(largeData)
+ *
+ * // 流式加密（超大文件）
+ * CryptoKit.stream.encryptFile(inputStream, outputStream, key, iv)
  *
  * // 哈希
  * val hash = CryptoKit.hash().digest("Hello, World!")
@@ -67,6 +84,56 @@ object CryptoKit {
      */
     fun hybrid(): HybridBuilder = HybridBuilder()
 
+    // ==================== 流式加密 ====================
+
+    /**
+     * 流式加密工具（适用于大文件）
+     */
+    object stream {
+        /**
+         * 加密流
+         * 注意：使用CBC或CTR模式，GCM不支持流式处理
+         */
+        fun encrypt(
+            inputStream: InputStream,
+            outputStream: OutputStream,
+            key: SecretKey,
+            iv: ByteArray,
+            mode: String = "CBC"
+        ): Long = StreamCipher.encryptStream(inputStream, outputStream, key, iv, mode)
+
+        /**
+         * 解密流
+         */
+        fun decrypt(
+            inputStream: InputStream,
+            outputStream: OutputStream,
+            key: SecretKey,
+            iv: ByteArray,
+            mode: String = "CBC"
+        ): Long = StreamCipher.decryptStream(inputStream, outputStream, key, iv, mode)
+        
+        /**
+         * 创建加密输出流
+         */
+        fun createEncryptOutputStream(
+            outputStream: OutputStream,
+            key: SecretKey,
+            iv: ByteArray,
+            mode: String = "CBC"
+        ) = StreamCipher.createEncryptOutputStream(outputStream, key, iv, mode)
+        
+        /**
+         * 创建解密输入流
+         */
+        fun createDecryptInputStream(
+            inputStream: InputStream,
+            key: SecretKey,
+            iv: ByteArray,
+            mode: String = "CBC"
+        ) = StreamCipher.createDecryptInputStream(inputStream, key, iv, mode)
+    }
+
     // ==================== 哈希 ====================
 
     /**
@@ -91,12 +158,48 @@ object CryptoKit {
         fun fromHex(encoded: String): ByteArray = HexEncoder.getInstance().decode(encoded)
     }
 
+    // ==================== 安全工具 ====================
+
+    /**
+     * 安全工具
+     */
+    object secure {
+        /**
+         * 安全擦除字节数组
+         */
+        fun wipe(data: ByteArray?) = SecureUtils.wipe(data)
+        
+        /**
+         * 安全擦除字符数组（密码）
+         */
+        fun wipe(data: CharArray?) = SecureUtils.wipe(data)
+        
+        /**
+         * 恒定时间比较（防时序攻击）
+         */
+        fun constantTimeEquals(a: ByteArray?, b: ByteArray?): Boolean = 
+            SecureUtils.constantTimeEquals(a, b)
+        
+        /**
+         * 安全作用域（自动擦除）
+         */
+        inline fun <T> withSecureBytes(data: ByteArray, block: (ByteArray) -> T): T =
+            SecureUtils.withSecureBytes(data, block)
+    }
+
     // ==================== 密钥管理 ====================
 
     /**
      * 密钥管理器（Android Keystore）
      */
     val keyManager: KeyManager get() = KeyManagerImpl.instance
+
+    // ==================== 算法注册 ====================
+
+    /**
+     * 算法注册表（用于扩展自定义算法）
+     */
+    val registry: AlgorithmRegistry get() = AlgorithmRegistry
 
     // ==================== 拦截器 ====================
 
@@ -186,7 +289,19 @@ object CryptoKit {
         iterations: Int = 10000,
         keyLength: Int = 256,
         algorithm: String = "SHA-256"
-    ): ByteArray = StandardHashEngine(algorithm).deriveKey(
-        password.toCharArray(), salt, iterations, keyLength
-    ).encoded
+    ): ByteArray = SecureUtils.withSecurePassword(password.toCharArray()) { pwd ->
+        StandardHashEngine(algorithm).deriveKey(pwd, salt, iterations, keyLength).encoded
+    }
+
+    // ==================== 版本信息 ====================
+
+    /**
+     * 库版本号
+     */
+    const val VERSION = "1.0.0"
+
+    /**
+     * 库版本名
+     */
+    const val VERSION_NAME = "CryptoKit Financial Grade"
 }
