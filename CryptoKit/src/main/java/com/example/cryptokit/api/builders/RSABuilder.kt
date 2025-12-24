@@ -4,6 +4,7 @@ import com.example.cryptokit.core.asymmetric.RSACipher
 import com.example.cryptokit.core.signature.RSASignature
 import com.example.cryptokit.exception.ValidationException
 import com.example.cryptokit.interceptor.InterceptorChain
+import com.example.cryptokit.util.CryptoLogger
 import java.security.*
 import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.X509EncodedKeySpec
@@ -201,15 +202,23 @@ class RSABuilder : AsymmetricBuilder<RSABuilder>() {
         
         val maxLength = getMaxEncryptLength()
         if (plaintext.size > maxLength) {
+            CryptoLogger.logSecurityWarning("RSA", "Plaintext too long: ${plaintext.size}B, max: ${maxLength}B")
             throw ValidationException(
                 "Plaintext too long for RSA-$keySize encryption: ${plaintext.size} bytes, max: $maxLength bytes. " +
                 "Consider using hybrid encryption for large data."
             )
         }
         
+        val startTime = System.currentTimeMillis()
+        CryptoLogger.logEncrypt("RSA-$keySize", plaintext.size, keySize)
+        
         return wrapEncryptionException("RSA-$keySize") {
             val processedPlaintext = InterceptorChain.beforeEncrypt(plaintext, "RSA-$keySize")
             val ciphertext = cipher.encrypt(processedPlaintext, key)
+            
+            val duration = System.currentTimeMillis() - startTime
+            CryptoLogger.logEncryptComplete("RSA-$keySize", plaintext.size, ciphertext.size, duration)
+            
             InterceptorChain.afterEncrypt(ciphertext, "RSA-$keySize")
         }
     }
@@ -236,9 +245,16 @@ class RSABuilder : AsymmetricBuilder<RSABuilder>() {
         requireNotEmpty(ciphertext, "ciphertext")
         val key = requirePrivateKey()
         
+        val startTime = System.currentTimeMillis()
+        CryptoLogger.logDecrypt("RSA-$keySize", ciphertext.size)
+        
         return wrapDecryptionException("RSA-$keySize") {
             val processedCiphertext = InterceptorChain.beforeDecrypt(ciphertext, "RSA-$keySize")
             val plaintext = cipher.decrypt(processedCiphertext, key)
+            
+            val duration = System.currentTimeMillis() - startTime
+            CryptoLogger.logDecryptComplete("RSA-$keySize", ciphertext.size, plaintext.size, duration)
+            
             InterceptorChain.afterDecrypt(plaintext, "RSA-$keySize")
         }
     }
@@ -263,7 +279,11 @@ class RSABuilder : AsymmetricBuilder<RSABuilder>() {
     fun sign(data: ByteArray): ByteArray {
         requireNotEmpty(data, "data")
         val key = requirePrivateKey()
-        return wrapSignatureException("sign") { signature.sign(data, key) }
+        
+        CryptoLogger.logSign("RSA-$signatureAlgorithm", data.size)
+        val sig = wrapSignatureException("sign") { signature.sign(data, key) }
+        CryptoLogger.i("Sign", "[RSA] Signature created: ${sig.size} bytes")
+        return sig
     }
 
     /**
@@ -288,7 +308,10 @@ class RSABuilder : AsymmetricBuilder<RSABuilder>() {
         requireNotEmpty(data, "data")
         requireNotEmpty(signatureBytes, "signature")
         val key = requirePublicKey()
-        return wrapSignatureException("verify") { signature.verify(data, signatureBytes, key) }
+        
+        val result = wrapSignatureException("verify") { signature.verify(data, signatureBytes, key) }
+        CryptoLogger.logVerify("RSA-$signatureAlgorithm", data.size, result)
+        return result
     }
 
     /**

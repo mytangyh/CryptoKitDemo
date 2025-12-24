@@ -2,6 +2,7 @@ package com.example.cryptokit.api.builders
 
 import com.example.cryptokit.core.hash.StandardHashEngine
 import com.example.cryptokit.exception.ValidationException
+import com.example.cryptokit.util.CryptoLogger
 import java.io.InputStream
 
 /**
@@ -38,6 +39,7 @@ class HashBuilder(
      */
     fun digest(data: ByteArray): ByteArray {
         requireNotEmpty(data, "data")
+        CryptoLogger.logHash(algorithm, data.size)
         return wrapCryptoException("Hash calculation") { engine.hash(data) }
     }
     
@@ -55,6 +57,7 @@ class HashBuilder(
     fun hmac(data: ByteArray, key: ByteArray): ByteArray {
         requireNotEmpty(data, "data")
         requireNotEmpty(key, "key")
+        CryptoLogger.d("HMAC", "[$algorithm] Computing HMAC for ${data.size} bytes")
         return wrapCryptoException("HMAC calculation") { engine.hmac(data, key) }
     }
     

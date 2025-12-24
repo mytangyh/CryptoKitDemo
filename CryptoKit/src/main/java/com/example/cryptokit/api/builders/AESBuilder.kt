@@ -5,6 +5,7 @@ import com.example.cryptokit.api.results.CipherResult
 import com.example.cryptokit.core.symmetric.AESCipher
 import com.example.cryptokit.exception.ValidationException
 import com.example.cryptokit.interceptor.InterceptorChain
+import com.example.cryptokit.util.CryptoLogger
 import java.security.SecureRandom
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
@@ -246,6 +247,9 @@ class AESBuilder : SymmetricBuilder<AESBuilder>() {
     fun encrypt(plaintext: ByteArray): CipherResult {
         requireNotEmpty(plaintext, "plaintext")
         
+        val startTime = System.currentTimeMillis()
+        CryptoLogger.logEncrypt("AES-$mode", plaintext.size, keySize)
+        
         return wrapEncryptionException("AES-$mode") {
             val processedPlaintext = InterceptorChain.beforeEncrypt(plaintext, "AES-$mode")
             
@@ -260,6 +264,9 @@ class AESBuilder : SymmetricBuilder<AESBuilder>() {
             
             val ciphertext = cipher.encrypt(processedPlaintext, actualKey, actualIv)
             val processedCiphertext = InterceptorChain.afterEncrypt(ciphertext, "AES-$mode")
+            
+            val duration = System.currentTimeMillis() - startTime
+            CryptoLogger.logEncryptComplete("AES-$mode", plaintext.size, ciphertext.size, duration)
             
             CipherResult(
                 ciphertext = processedCiphertext,
@@ -298,9 +305,16 @@ class AESBuilder : SymmetricBuilder<AESBuilder>() {
         val actualKey = requireNotNull(key, "key")
         val actualIv = requireNotNull(iv, "iv")
         
+        val startTime = System.currentTimeMillis()
+        CryptoLogger.logDecrypt("AES-$mode", ciphertext.size)
+        
         return wrapDecryptionException("AES-$mode") {
             val processedCiphertext = InterceptorChain.beforeDecrypt(ciphertext, "AES-$mode")
             val plaintext = cipher.decrypt(processedCiphertext, actualKey, actualIv)
+            
+            val duration = System.currentTimeMillis() - startTime
+            CryptoLogger.logDecryptComplete("AES-$mode", ciphertext.size, plaintext.size, duration)
+            
             InterceptorChain.afterDecrypt(plaintext, "AES-$mode")
         }
     }

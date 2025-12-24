@@ -5,6 +5,7 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.security.keystore.StrongBoxUnavailableException
 import com.example.cryptokit.exception.KeyManagementException
+import com.example.cryptokit.util.CryptoLogger
 import java.security.*
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import javax.crypto.KeyGenerator
@@ -64,6 +65,8 @@ class KeyManagerImpl private constructor() : KeyManager {
         require(alias.isNotBlank()) { "Alias cannot be blank" }
         require(keySize in listOf(128, 192, 256)) { "Invalid AES key size: $keySize" }
         
+        CryptoLogger.d("Keystore", "Generating AES-$keySize key, alias='$alias'")
+        
         return lock.write {
             try {
                 val keyGenerator = KeyGenerator.getInstance(
@@ -82,8 +85,13 @@ class KeyManagerImpl private constructor() : KeyManager {
 
                 applyOptions(builder, options)
                 keyGenerator.init(builder.build())
-                keyGenerator.generateKey()
+                val key = keyGenerator.generateKey()
+                
+                CryptoLogger.logKeyGeneration("AES", keySize, alias)
+                CryptoLogger.logKeystoreOp("GenerateAESKey", alias, true)
+                key
             } catch (e: Exception) {
+                CryptoLogger.logFailure("GenerateAESKey", "AES-$keySize", e)
                 throw KeyManagementException.keyGenerationFailed(e)
             }
         }

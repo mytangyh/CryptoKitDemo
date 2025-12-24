@@ -9,6 +9,7 @@ import com.example.cryptokit.core.stream.StreamCipher
 import com.example.cryptokit.keymanager.KeyManager
 import com.example.cryptokit.keymanager.KeyManagerImpl
 import com.example.cryptokit.registry.AlgorithmRegistry
+import com.example.cryptokit.util.CryptoLogger
 import com.example.cryptokit.util.SecureRandomUtil
 import com.example.cryptokit.util.SecureUtils
 import java.io.InputStream
@@ -535,6 +536,7 @@ object CryptoKit {
      * 同时启用日志记录和性能监控。
      */
     fun enableDebugMode() {
+        CryptoLogger.enable(CryptoLogger.Level.DEBUG)
         interceptors.enableDebugMode()
     }
 
@@ -544,6 +546,7 @@ object CryptoKit {
      * @param tag 日志标签，默认 "CryptoKit"
      */
     fun enableLogging(tag: String = "CryptoKit") {
+        CryptoLogger.enable(CryptoLogger.Level.DEBUG)
         interceptors.enableLogging(tag)
     }
 
@@ -553,16 +556,36 @@ object CryptoKit {
      * @param warningThresholdMs 慢操作警告阈值（毫秒），默认 100ms
      */
     fun enablePerformanceMonitoring(warningThresholdMs: Long = 100) {
+        CryptoLogger.enable(CryptoLogger.Level.INFO)
         interceptors.enablePerformanceMonitoring(warningThresholdMs)
     }
 
     /**
-     * 禁用所有拦截器
+     * 禁用所有拦截器和日志
      */
     fun disableInterceptors() {
+        CryptoLogger.disable()
         interceptors.disable()
         interceptors.clearInterceptors()
     }
+    
+    /**
+     * 日志工具
+     *
+     * 提供统一的日志控制，支持级别设置、自定义监听器、敏感信息脱敏。
+     *
+     * ## 示例
+     * ```kotlin
+     * // 启用日志
+     * CryptoKit.logger.enable(CryptoLogger.Level.DEBUG)
+     *
+     * // 设置自定义监听器
+     * CryptoKit.logger.setLogListener { level, tag, message, throwable ->
+     *     // 发送到自定义日志系统
+     * }
+     * ```
+     */
+    val logger: CryptoLogger get() = CryptoLogger
 
     // ==================== 快捷方法 ====================
 
