@@ -1,13 +1,15 @@
 package com.example.cryptokit.interceptor
 
-import android.util.Log
+import com.example.cryptokit.util.CryptoLogger
 
 /**
  * 性能监控拦截器
- * 记录加密/解密操作的耗时
+ * 
+ * 记录加密/解密操作的耗时，超过阈值会输出警告。
+ * 内部复用 [CryptoLogger] 统一日志工具。
  */
 class PerformanceInterceptor(
-    private val tag: String = "CryptoKit.Perf",
+    private val tag: String = "Perf",
     override val priority: Int = 50,
     private val warningThresholdMs: Long = 100
 ) : CryptoInterceptor {
@@ -38,18 +40,20 @@ class PerformanceInterceptor(
 
     private fun logDuration(operation: String, algorithm: String, plaintext: ByteArray?, result: ByteArray?) {
         val startTime = startTimes.get() ?: return
-        val durationNs = System.nanoTime() - startTime
-        val durationMs = durationNs / 1_000_000.0
+        try {
+            val durationNs = System.nanoTime() - startTime
+            val durationMs = durationNs / 1_000_000.0
 
-        val size = result?.size ?: plaintext?.size ?: 0
-        val message = "[$algorithm] $operation completed in %.2f ms (%d bytes)".format(durationMs, size)
+            val size = result?.size ?: plaintext?.size ?: 0
+            val message = "[$algorithm] $operation completed in %.2f ms (%d bytes)".format(durationMs, size)
 
-        if (durationMs >= warningThresholdMs) {
-            Log.w(tag, "⚠️ SLOW: $message")
-        } else {
-            Log.d(tag, "✓ $message")
+            if (durationMs >= warningThresholdMs) {
+                CryptoLogger.w(tag, "⚠️ SLOW: $message")
+            } else {
+                CryptoLogger.d(tag, "✓ $message")
+            }
+        } finally {
+            startTimes.remove()
         }
-        
-        startTimes.remove()
     }
 }
