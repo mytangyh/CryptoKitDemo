@@ -77,17 +77,87 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="🔐 AES 加密"
+                    android:text="🔐 AES 对称加密"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:textColor="#333333"
-                    android:layout_marginBottom="12dp" />
+                    android:layout_marginBottom="8dp" />
+
+                <!-- 模式选择 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="模式:"
+                    android:textSize="12sp"
+                    android:textColor="#666666" />
+
+                <RadioGroup
+                    android:id="@+id/rgAesMode"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+
+                    <RadioButton
+                        android:id="@+id/rbAesGcm"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="GCM"
+                        android:checked="true" />
+
+                    <RadioButton
+                        android:id="@+id/rbAesCbc"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="CBC" />
+
+                    <RadioButton
+                        android:id="@+id/rbAesCtr"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="CTR" />
+                </RadioGroup>
+
+                <!-- 密钥长度选择 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="密钥长度:"
+                    android:textSize="12sp"
+                    android:textColor="#666666" />
+
+                <RadioGroup
+                    android:id="@+id/rgAesKeySize"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="12dp">
+
+                    <RadioButton
+                        android:id="@+id/rbAes128"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="128位" />
+
+                    <RadioButton
+                        android:id="@+id/rbAes192"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="192位" />
+
+                    <RadioButton
+                        android:id="@+id/rbAes256"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="256位"
+                        android:checked="true" />
+                </RadioGroup>
 
                 <Button
                     android:id="@+id/btnAesEncrypt"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="AES-256-GCM 加密/解密"
+                    android:text="AES 加密/解密"
                     android:backgroundTint="#4CAF50" />
 
                 <TextView
@@ -119,17 +189,87 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="🔑 RSA 加密"
+                    android:text="🔑 RSA 非对称加密"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:textColor="#333333"
-                    android:layout_marginBottom="12dp" />
+                    android:layout_marginBottom="8dp" />
+
+                <!-- 密钥长度选择 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="密钥长度:"
+                    android:textSize="12sp"
+                    android:textColor="#666666" />
+
+                <RadioGroup
+                    android:id="@+id/rgRsaKeySize"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp">
+
+                    <RadioButton
+                        android:id="@+id/rbRsa1024"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="1024位" />
+
+                    <RadioButton
+                        android:id="@+id/rbRsa2048"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="2048位"
+                        android:checked="true" />
+
+                    <RadioButton
+                        android:id="@+id/rbRsa4096"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="4096位" />
+                </RadioGroup>
+
+                <!-- 填充方案选择 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="填充方案:"
+                    android:textSize="12sp"
+                    android:textColor="#666666" />
+
+                <RadioGroup
+                    android:id="@+id/rgRsaPadding"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="12dp">
+
+                    <RadioButton
+                        android:id="@+id/rbRsaOaep256"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="OAEP-SHA256"
+                        android:checked="true" />
+
+                    <RadioButton
+                        android:id="@+id/rbRsaOaep1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="OAEP-SHA1" />
+
+                    <RadioButton
+                        android:id="@+id/rbRsaPkcs1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="PKCS1" />
+                </RadioGroup>
 
                 <Button
                     android:id="@+id/btnRsaEncrypt"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="RSA-2048 加密/解密"
+                    android:text="RSA 加密/解密"
                     android:backgroundTint="#2196F3" />
 
                 <TextView
@@ -207,13 +347,42 @@
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:textColor="#333333"
-                    android:layout_marginBottom="12dp" />
+                    android:layout_marginBottom="8dp" />
+
+                <!-- 签名算法选择 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="签名类型:"
+                    android:textSize="12sp"
+                    android:textColor="#666666" />
+
+                <RadioGroup
+                    android:id="@+id/rgSignType"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="12dp">
+
+                    <RadioButton
+                        android:id="@+id/rbSignRsa"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="RSA"
+                        android:checked="true" />
+
+                    <RadioButton
+                        android:id="@+id/rbSignEcdsa"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="ECDSA" />
+                </RadioGroup>
 
                 <Button
                     android:id="@+id/btnSign"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="RSA 签名/验签"
+                    android:text="签名/验签"
                     android:backgroundTint="#FF5722" />
 
                 <TextView
@@ -249,7 +418,48 @@
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:textColor="#333333"
-                    android:layout_marginBottom="12dp" />
+                    android:layout_marginBottom="8dp" />
+
+                <!-- 哈希算法选择 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="算法:"
+                    android:textSize="12sp"
+                    android:textColor="#666666" />
+
+                <RadioGroup
+                    android:id="@+id/rgHashAlgorithm"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="12dp">
+
+                    <RadioButton
+                        android:id="@+id/rbHashMd5"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="MD5" />
+
+                    <RadioButton
+                        android:id="@+id/rbHashSha1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="SHA1" />
+
+                    <RadioButton
+                        android:id="@+id/rbHashSha256"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="SHA256"
+                        android:checked="true" />
+
+                    <RadioButton
+                        android:id="@+id/rbHashSha512"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="SHA512" />
+                </RadioGroup>
 
                 <Button
                     android:id="@+id/btnHash"
@@ -312,7 +522,7 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- ECDH密钥协商演示 -->
+        <!-- ECC/ECDH演示 -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -329,17 +539,52 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="🤝 ECDH 密钥协商"
+                    android:text="🤝 ECC / ECDH"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:textColor="#333333"
-                    android:layout_marginBottom="12dp" />
+                    android:layout_marginBottom="8dp" />
+
+                <!-- 曲线选择 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="曲线:"
+                    android:textSize="12sp"
+                    android:textColor="#666666" />
+
+                <RadioGroup
+                    android:id="@+id/rgEccCurve"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="12dp">
+
+                    <RadioButton
+                        android:id="@+id/rbEccP256"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="P-256"
+                        android:checked="true" />
+
+                    <RadioButton
+                        android:id="@+id/rbEccP384"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="P-384" />
+
+                    <RadioButton
+                        android:id="@+id/rbEccP521"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="P-521" />
+                </RadioGroup>
 
                 <Button
                     android:id="@+id/btnEcdh"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="密钥协商演示"
+                    android:text="ECDH密钥协商"
                     android:backgroundTint="#009688" />
 
                 <TextView
