@@ -10,11 +10,17 @@ import javax.crypto.spec.IvParameterSpec
 
 /**
  * AES加密实现
+ * 
+ * 金融级特性：
+ * - 支持GCM模式AAD（附加认证数据）
+ * - 完整的模式支持
+ * - 安全的默认配置
  */
 class AESCipher(
     private val mode: String = "GCM",
     private val padding: String = "NoPadding",
-    private val gcmTagLength: Int = 128
+    private val gcmTagLength: Int = 128,
+    private val aad: ByteArray? = null
 ) : SymmetricCipher {
 
     override val algorithmName: String = "AES"
@@ -30,6 +36,8 @@ class AESCipher(
             "GCM" -> {
                 val gcmSpec = GCMParameterSpec(gcmTagLength, iv)
                 cipher.init(Cipher.ENCRYPT_MODE, key, gcmSpec)
+                // 添加AAD（附加认证数据）
+                aad?.let { cipher.updateAAD(it) }
             }
             "ECB" -> {
                 cipher.init(Cipher.ENCRYPT_MODE, key)
@@ -48,6 +56,8 @@ class AESCipher(
             "GCM" -> {
                 val gcmSpec = GCMParameterSpec(gcmTagLength, iv)
                 cipher.init(Cipher.DECRYPT_MODE, key, gcmSpec)
+                // 添加AAD（附加认证数据）- 必须与加密时相同
+                aad?.let { cipher.updateAAD(it) }
             }
             "ECB" -> {
                 cipher.init(Cipher.DECRYPT_MODE, key)
@@ -71,7 +81,7 @@ class AESCipher(
     }
 
     companion object {
-        fun gcm(): AESCipher = AESCipher("GCM", "NoPadding")
+        fun gcm(aad: ByteArray? = null): AESCipher = AESCipher("GCM", "NoPadding", 128, aad)
         fun cbc(): AESCipher = AESCipher("CBC", "PKCS5Padding")
         fun ctr(): AESCipher = AESCipher("CTR", "NoPadding")
     }
