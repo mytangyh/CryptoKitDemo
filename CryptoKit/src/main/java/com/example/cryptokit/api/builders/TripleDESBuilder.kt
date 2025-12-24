@@ -174,7 +174,8 @@ class TripleDESBuilder : SymmetricBuilder<TripleDESBuilder>() {
     }
     
     private fun validateSecretKey(key: SecretKey) {
-        if (key.algorithm != "DESede") {
+        // 使用不区分大小写的比较，因为不同JCE provider可能返回不同大小写
+        if (!key.algorithm.equals("DESede", ignoreCase = true)) {
             throw ValidationException("Invalid key algorithm: ${key.algorithm}, expected: DESede")
         }
     }
