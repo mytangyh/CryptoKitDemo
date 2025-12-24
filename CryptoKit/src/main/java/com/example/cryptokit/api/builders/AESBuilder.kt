@@ -250,7 +250,13 @@ class AESBuilder : SymmetricBuilder<AESBuilder>() {
             val processedPlaintext = InterceptorChain.beforeEncrypt(plaintext, "AES-$mode")
             
             val actualKey = key ?: generateKey(keySize)
-            val actualIv = iv ?: cipher.generateIV()
+            // 安全关键：GCM模式必须每次生成新nonce，防止nonce重用漏洞
+            // 其他模式如CBC/CTR可以复用设置的IV
+            val actualIv = if (mode == "GCM") {
+                cipher.generateIV()  // GCM强制每次新nonce
+            } else {
+                iv ?: cipher.generateIV()
+            }
             
             val ciphertext = cipher.encrypt(processedPlaintext, actualKey, actualIv)
             val processedCiphertext = InterceptorChain.afterEncrypt(ciphertext, "AES-$mode")

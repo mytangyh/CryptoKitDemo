@@ -147,6 +147,12 @@ object CryptoKit {
      * @return [TripleDESBuilder] 实例
      * @see TripleDESBuilder
      */
+    @Deprecated(
+        message = "3DES已被NIST废弃(2023)，仅用于兼容旧系统。新项目请使用aes()",
+        replaceWith = ReplaceWith("aes()"),
+        level = DeprecationLevel.WARNING
+    )
+    @Suppress("DEPRECATION")
     fun tripleDes(): TripleDESBuilder = TripleDESBuilder()
 
     // ==================== 非对称加密 ====================
@@ -660,14 +666,14 @@ object CryptoKit {
      * val key = CryptoKit.deriveKey(
      *     password = "myPassword",
      *     salt = salt,
-     *     iterations = 100000,  // 生产环境建议 >= 100000
+     *     iterations = 100000,  // 默认值，符合OWASP 2024建议
      *     keyLength = 256
      * )
      * ```
      *
      * @param password 密码
      * @param salt 盐值（至少 16 字节）
-     * @param iterations 迭代次数，默认 10000（生产环境建议 >= 100000）
+     * @param iterations 迭代次数，默认 100000（符合OWASP 2024指南）
      * @param keyLength 派生密钥长度（位），默认 256
      * @param algorithm 哈希算法，默认 "SHA-256"
      * @return 派生的密钥字节数组
@@ -675,7 +681,7 @@ object CryptoKit {
     fun deriveKey(
         password: String,
         salt: ByteArray,
-        iterations: Int = 10000,
+        iterations: Int = 100000,  // OWASP 2024: 建议至少100000次
         keyLength: Int = 256,
         algorithm: String = "SHA-256"
     ): ByteArray = SecureUtils.withSecurePassword(password.toCharArray()) { pwd ->

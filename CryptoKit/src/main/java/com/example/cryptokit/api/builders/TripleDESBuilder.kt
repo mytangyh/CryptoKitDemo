@@ -22,6 +22,11 @@ import javax.crypto.spec.SecretKeySpec
  * 
  * 默认配置：3DES-CBC-PKCS5Padding
  */
+@Deprecated(
+    message = "3DES已被NIST废弃(2023)，仅用于兼容旧系统。新项目请使用AES。",
+    replaceWith = ReplaceWith("CryptoKit.aes()", "com.example.cryptokit.CryptoKit"),
+    level = DeprecationLevel.WARNING
+)
 class TripleDESBuilder : SymmetricBuilder<TripleDESBuilder>() {
     
     override fun self(): TripleDESBuilder = this
