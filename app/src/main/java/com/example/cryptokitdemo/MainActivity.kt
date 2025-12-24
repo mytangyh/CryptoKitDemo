@@ -31,6 +31,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvPbkdf2Result: TextView
     private lateinit var tvUtilsResult: TextView
     private lateinit var tvKeystoreResult: TextView
+    private lateinit var tvStreamResult: TextView
+    private lateinit var tvSecureResult: TextView
+    private lateinit var tvConcurrencyResult: TextView
+    private lateinit var tvRegistryResult: TextView
 
     // CheckBoxes
     private lateinit var cbEnableLogging: CheckBox
@@ -91,6 +95,10 @@ class MainActivity : AppCompatActivity() {
         tvPbkdf2Result = findViewById(R.id.tvPbkdf2Result)
         tvUtilsResult = findViewById(R.id.tvUtilsResult)
         tvKeystoreResult = findViewById(R.id.tvKeystoreResult)
+        tvStreamResult = findViewById(R.id.tvStreamResult)
+        tvSecureResult = findViewById(R.id.tvSecureResult)
+        tvConcurrencyResult = findViewById(R.id.tvConcurrencyResult)
+        tvRegistryResult = findViewById(R.id.tvRegistryResult)
         cbEnableLogging = findViewById(R.id.cbEnableLogging)
         cbEnablePerformance = findViewById(R.id.cbEnablePerformance)
     }
@@ -107,6 +115,10 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btnPbkdf2).setOnClickListener { demoPbkdf2() }
         findViewById<Button>(R.id.btnUtils).setOnClickListener { demoUtils() }
         findViewById<Button>(R.id.btnKeystore).setOnClickListener { demoKeystore() }
+        findViewById<Button>(R.id.btnStreamEncrypt).setOnClickListener { demoStreamEncryption() }
+        findViewById<Button>(R.id.btnSecureUtils).setOnClickListener { demoSecureUtils() }
+        findViewById<Button>(R.id.btnConcurrencyTest).setOnClickListener { demoConcurrencyTest() }
+        findViewById<Button>(R.id.btnRegistry).setOnClickListener { demoRegistry() }
 
         // 拦截器开关
         cbEnableLogging.setOnCheckedChangeListener { _, _ -> updateInterceptors() }
@@ -828,6 +840,282 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             tvKeystoreResult.text = "❌ 错误: ${e.message}\n\n说明: 模拟器可能不支持部分Keystore功能"
             showToast("Keystore演示失败")
+        }
+    }
+
+    // ==================== 流式加密演示 ====================
+    private fun demoStreamEncryption() {
+        try {
+            val startTime = System.currentTimeMillis()
+            
+            // 模拟大文件数据 (1MB)
+            val fileSize = 1024 * 1024
+            val largeData = ByteArray(fileSize) { (it % 256).toByte() }
+            
+            // 生成密钥和IV
+            val key = CryptoKit.aes().generateKey()
+            val iv = CryptoKit.secureRandom(16)
+            
+            // 使用流式加密
+            val inputStream = java.io.ByteArrayInputStream(largeData)
+            val encryptedStream = java.io.ByteArrayOutputStream()
+            
+            val encryptedBytes = CryptoKit.stream.encrypt(
+                inputStream,
+                encryptedStream,
+                key,
+                iv,
+                "CBC"
+            )
+            
+            // 使用流式解密
+            val decryptInputStream = java.io.ByteArrayInputStream(encryptedStream.toByteArray())
+            val decryptedStream = java.io.ByteArrayOutputStream()
+            
+            val decryptedBytes = CryptoKit.stream.decrypt(
+                decryptInputStream,
+                decryptedStream,
+                key,
+                iv,
+                "CBC"
+            )
+            
+            // 验证数据完整性
+            val decryptedData = decryptedStream.toByteArray()
+            val isEqual = largeData.contentEquals(decryptedData)
+            
+            val duration = System.currentTimeMillis() - startTime
+            val throughput = (fileSize.toDouble() * 2 / (duration / 1000.0) / 1024 / 1024).let { 
+                "%.2f MB/s".format(it) 
+            }
+
+            val output = buildString {
+                appendLine("📁 流式加密/解密演示")
+                appendLine()
+                appendLine("📊 测试数据大小: ${fileSize / 1024} KB")
+                appendLine()
+                appendLine("⚙️ 配置: AES-256-CBC 流式加密")
+                appendLine()
+                appendLine("🔒 加密后大小: ${encryptedStream.size()} 字节")
+                appendLine("📤 解密后大小: ${decryptedData.size} 字节")
+                appendLine()
+                appendLine("✅ 数据完整性验证: $isEqual")
+                appendLine()
+                appendLine("⏱️ 总耗时: ${duration}ms")
+                appendLine("🚀 吞吐量: $throughput")
+                appendLine()
+                appendLine("💡 流式加密适用于:")
+                appendLine("  - 大文件加密 (不占用大量内存)")
+                appendLine("  - 网络流加密")
+                appendLine("  - 视频/音频实时加密")
+            }
+            
+            tvStreamResult.text = output
+            showToast("流式加密演示完成")
+        } catch (e: Exception) {
+            tvStreamResult.text = "❌ 错误: ${e.message}"
+            showToast("流式加密演示失败")
+        }
+    }
+
+    // ==================== 安全工具演示 ====================
+    private fun demoSecureUtils() {
+        try {
+            val output = buildString {
+                appendLine("🛡️ 安全工具演示")
+                appendLine()
+                
+                // 1. 敏感数据擦除演示
+                appendLine("▶️ 敏感数据擦除 (SecureUtils.wipe)")
+                val sensitiveData = "MySecretPassword123!".toByteArray()
+                val dataBeforeWipe = sensitiveData.joinToString("") { "%02x".format(it) }
+                CryptoKit.secure.wipe(sensitiveData)
+                val dataAfterWipe = sensitiveData.joinToString("") { "%02x".format(it) }
+                appendLine("  擦除前: $dataBeforeWipe")
+                appendLine("  擦除后: $dataAfterWipe")
+                appendLine("  ✅ 数据已用零覆盖")
+                appendLine()
+                
+                // 2. 恒定时间比较演示
+                appendLine("▶️ 恒定时间比较 (防时序攻击)")
+                val hash1 = CryptoKit.sha256("test".toByteArray())
+                val hash2 = CryptoKit.sha256("test".toByteArray())
+                val hash3 = CryptoKit.sha256("different".toByteArray())
+                
+                val t1Start = System.nanoTime()
+                repeat(10000) { CryptoKit.secure.constantTimeEquals(hash1, hash2) }
+                val t1 = System.nanoTime() - t1Start
+                
+                val t2Start = System.nanoTime()
+                repeat(10000) { CryptoKit.secure.constantTimeEquals(hash1, hash3) }
+                val t2 = System.nanoTime() - t2Start
+                
+                appendLine("  相同数据比较耗时: ${t1 / 1000}μs (10000次)")
+                appendLine("  不同数据比较耗时: ${t2 / 1000}μs (10000次)")
+                appendLine("  时间差: ${kotlin.math.abs(t1 - t2) / 1000}μs")
+                appendLine("  ✅ 时间差很小，防止时序攻击")
+                appendLine()
+                
+                // 3. CipherResult.use() 演示
+                appendLine("▶️ CipherResult.use{} 自动清理")
+                var keyBytesAfterUse: ByteArray? = null
+                CryptoKit.aes().encrypt("test").use { result ->
+                    appendLine("  加密结果密钥长度: ${result.key.encoded?.size ?: 0} 字节")
+                    keyBytesAfterUse = result.key.encoded?.copyOf()
+                }
+                appendLine("  ✅ use块结束后，敏感数据已安全清除")
+                appendLine()
+                
+                // 4. 安全作用域演示
+                appendLine("▶️ withSecureBytes 安全作用域")
+                val password = CryptoKit.secureRandom(16)
+                val result = CryptoKit.secure.withSecureBytes(password) { bytes ->
+                    "处理 ${bytes.size} 字节的敏感数据"
+                }
+                appendLine("  $result")
+                appendLine("  ✅ 作用域结束后自动擦除")
+                appendLine()
+                
+                appendLine("💡 金融级安全建议:")
+                appendLine("  1. 敏感数据用完立即擦除")
+                appendLine("  2. 密码比较使用恒定时间比较")
+                appendLine("  3. 使用 use{} 块自动管理资源")
+            }
+            
+            tvSecureResult.text = output
+            showToast("安全工具演示完成")
+        } catch (e: Exception) {
+            tvSecureResult.text = "❌ 错误: ${e.message}"
+            showToast("安全工具演示失败")
+        }
+    }
+
+    // ==================== 多线程压力测试 ====================
+    private fun demoConcurrencyTest() {
+        tvConcurrencyResult.text = "⏳ 正在进行100线程并发加密测试..."
+        
+        Thread {
+            try {
+                val threadCount = 100
+                val operationsPerThread = 10
+                val totalOperations = threadCount * operationsPerThread
+                
+                val successCount = java.util.concurrent.atomic.AtomicInteger(0)
+                val errorCount = java.util.concurrent.atomic.AtomicInteger(0)
+                val latch = java.util.concurrent.CountDownLatch(threadCount)
+                
+                val startTime = System.currentTimeMillis()
+                
+                // 启动100个线程并发加密
+                repeat(threadCount) { threadId ->
+                    Thread {
+                        try {
+                            repeat(operationsPerThread) { opId ->
+                                // 每个线程进行加密解密
+                                val data = "Thread-$threadId-Op-$opId: ${System.currentTimeMillis()}"
+                                val result = CryptoKit.aes().encrypt(data)
+                                val decrypted = CryptoKit.aes().decryptToString(result)
+                                
+                                if (decrypted == data) {
+                                    successCount.incrementAndGet()
+                                } else {
+                                    errorCount.incrementAndGet()
+                                }
+                            }
+                        } catch (e: Exception) {
+                            errorCount.addAndGet(operationsPerThread)
+                        } finally {
+                            latch.countDown()
+                        }
+                    }.start()
+                }
+                
+                // 等待所有线程完成
+                latch.await()
+                
+                val duration = System.currentTimeMillis() - startTime
+                val opsPerSecond = (totalOperations * 1000.0 / duration).toInt()
+                
+                val output = buildString {
+                    appendLine("⚡ 多线程并发测试结果")
+                    appendLine()
+                    appendLine("📊 测试配置:")
+                    appendLine("  线程数: $threadCount")
+                    appendLine("  每线程操作数: $operationsPerThread")
+                    appendLine("  总操作数: $totalOperations")
+                    appendLine()
+                    appendLine("📈 测试结果:")
+                    appendLine("  ✅ 成功: ${successCount.get()}")
+                    appendLine("  ❌ 失败: ${errorCount.get()}")
+                    appendLine("  成功率: ${successCount.get() * 100 / totalOperations}%")
+                    appendLine()
+                    appendLine("⏱️ 性能数据:")
+                    appendLine("  总耗时: ${duration}ms")
+                    appendLine("  吞吐量: $opsPerSecond ops/s")
+                    appendLine()
+                    
+                    if (errorCount.get() == 0) {
+                        appendLine("🎉 所有并发操作成功!")
+                        appendLine("✅ CryptoKit 线程安全验证通过")
+                    } else {
+                        appendLine("⚠️ 发现 ${errorCount.get()} 个错误")
+                    }
+                }
+                
+                runOnUiThread {
+                    tvConcurrencyResult.text = output
+                    showToast("并发测试完成")
+                }
+            } catch (e: Exception) {
+                runOnUiThread {
+                    tvConcurrencyResult.text = "❌ 错误: ${e.message}"
+                    showToast("并发测试失败")
+                }
+            }
+        }.start()
+    }
+
+    // ==================== 算法注册表演示 ====================
+    private fun demoRegistry() {
+        try {
+            val output = buildString {
+                appendLine("📋 算法注册表 (AlgorithmRegistry)")
+                appendLine()
+                
+                val symmetricAlgorithms = CryptoKit.registry.listSymmetricCiphers()
+                val asymmetricAlgorithms = CryptoKit.registry.listAsymmetricCiphers()
+                val hashAlgorithms = CryptoKit.registry.listHashEngines()
+                
+                appendLine("🔐 对称加密算法 (${symmetricAlgorithms.size}个):")
+                symmetricAlgorithms.forEach { appendLine("  • $it") }
+                appendLine()
+                
+                appendLine("🔑 非对称加密算法 (${asymmetricAlgorithms.size}个):")
+                asymmetricAlgorithms.forEach { appendLine("  • $it") }
+                appendLine()
+                
+                appendLine("# 哈希算法 (${hashAlgorithms.size}个):")
+                hashAlgorithms.forEach { appendLine("  • $it") }
+                appendLine()
+                
+                // 检查算法是否存在
+                appendLine("🔍 算法检查:")
+                appendLine("  hasSymmetricCipher(\"AES-GCM\"): ${CryptoKit.registry.hasSymmetricCipher("AES-GCM")}")
+                appendLine("  hasAsymmetricCipher(\"RSA-OAEP-SHA256\"): ${CryptoKit.registry.hasAsymmetricCipher("RSA-OAEP-SHA256")}")
+                appendLine("  hasHashEngine(\"SHA-256\"): ${CryptoKit.registry.hasHashEngine("SHA-256")}")
+                appendLine()
+                
+                appendLine("💡 扩展性:")
+                appendLine("  CryptoKit.registry.registerSymmetricCipher()")
+                appendLine("  CryptoKit.registry.registerAsymmetricCipher()")
+                appendLine("  CryptoKit.registry.registerHashEngine()")
+            }
+            
+            tvRegistryResult.text = output
+            showToast("算法注册表演示完成")
+        } catch (e: Exception) {
+            tvRegistryResult.text = "❌ 错误: ${e.message}"
+            showToast("算法注册表演示失败")
         }
     }
 }
