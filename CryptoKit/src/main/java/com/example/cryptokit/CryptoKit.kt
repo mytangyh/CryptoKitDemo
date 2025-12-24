@@ -39,6 +39,12 @@ object CryptoKit {
      */
     fun aes(): AESBuilder = AESBuilder()
 
+    /**
+     * 3DES加密（兼容旧系统）
+     * 默认配置：3DES-CBC-PKCS5Padding
+     */
+    fun tripleDes(): TripleDESBuilder = TripleDESBuilder()
+
     // ==================== 非对称加密 ====================
 
     /**

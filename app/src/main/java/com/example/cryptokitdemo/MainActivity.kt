@@ -19,6 +19,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var etInput: EditText
     private lateinit var tvAesResult: TextView
+    private lateinit var tvDesResult: TextView
     private lateinit var tvRsaResult: TextView
     private lateinit var tvHybridResult: TextView
     private lateinit var tvSignResult: TextView
@@ -29,6 +30,7 @@ class MainActivity : AppCompatActivity() {
     // RadioGroups
     private lateinit var rgAesMode: RadioGroup
     private lateinit var rgAesKeySize: RadioGroup
+    private lateinit var rgDesMode: RadioGroup
     private lateinit var rgRsaKeySize: RadioGroup
     private lateinit var rgRsaPadding: RadioGroup
     private lateinit var rgSignType: RadioGroup
@@ -57,6 +59,7 @@ class MainActivity : AppCompatActivity() {
     private fun initViews() {
         etInput = findViewById(R.id.etInput)
         tvAesResult = findViewById(R.id.tvAesResult)
+        tvDesResult = findViewById(R.id.tvDesResult)
         tvRsaResult = findViewById(R.id.tvRsaResult)
         tvHybridResult = findViewById(R.id.tvHybridResult)
         tvSignResult = findViewById(R.id.tvSignResult)
@@ -67,6 +70,7 @@ class MainActivity : AppCompatActivity() {
         // RadioGroups
         rgAesMode = findViewById(R.id.rgAesMode)
         rgAesKeySize = findViewById(R.id.rgAesKeySize)
+        rgDesMode = findViewById(R.id.rgDesMode)
         rgRsaKeySize = findViewById(R.id.rgRsaKeySize)
         rgRsaPadding = findViewById(R.id.rgRsaPadding)
         rgSignType = findViewById(R.id.rgSignType)
@@ -76,6 +80,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupListeners() {
         findViewById<Button>(R.id.btnAesEncrypt).setOnClickListener { demoAesEncryption() }
+        findViewById<Button>(R.id.btnDesEncrypt).setOnClickListener { demoTripleDesEncryption() }
         findViewById<Button>(R.id.btnRsaEncrypt).setOnClickListener { demoRsaEncryption() }
         findViewById<Button>(R.id.btnHybridEncrypt).setOnClickListener { demoHybridEncryption() }
         findViewById<Button>(R.id.btnSign).setOnClickListener { demoDigitalSignature() }
@@ -151,6 +156,66 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             tvAesResult.text = "❌ 错误: ${e.message}"
             showToast("AES加密失败")
+        }
+    }
+
+    // ==================== 3DES加密演示 ====================
+    private fun demoTripleDesEncryption() {
+        try {
+            val input = getInputText()
+            val startTime = System.currentTimeMillis()
+
+            // 获取选择的模式
+            val mode = when (rgDesMode.checkedRadioButtonId) {
+                R.id.rbDesCbc -> "CBC"
+                R.id.rbDesEcb -> "ECB"
+                else -> "CBC"
+            }
+
+            // 构建3DES加密器
+            val desBuilder = CryptoKit.tripleDes().apply {
+                when (mode) {
+                    "CBC" -> cbc()
+                    "ECB" -> ecb()
+                }
+            }
+
+            // 加密
+            val result = desBuilder.encrypt(input)
+            
+            // 解密
+            val decrypted = CryptoKit.tripleDes().decryptToString(result)
+            
+            val duration = System.currentTimeMillis() - startTime
+
+            val output = buildString {
+                appendLine("✅ 3DES-${mode} 加密成功")
+                appendLine()
+                appendLine("📥 原文: $input")
+                appendLine()
+                appendLine("⚙️ 配置: 模式=$mode, 密钥=168位")
+                appendLine()
+                appendLine("⚠️ 注意: 3DES仅用于兼容旧系统，新项目请使用AES")
+                appendLine()
+                appendLine("🔑 密钥 (Base64):")
+                appendLine(result.key.encoded.toBase64NoWrap())
+                appendLine()
+                appendLine("🎲 IV (Hex):")
+                appendLine(result.iv.toHex())
+                appendLine()
+                appendLine("🔒 密文 (Base64):")
+                appendLine(result.ciphertext.toBase64NoWrap())
+                appendLine()
+                appendLine("📤 解密结果: $decrypted")
+                appendLine()
+                appendLine("⏱️ 耗时: ${duration}ms")
+            }
+            
+            tvDesResult.text = output
+            showToast("3DES-${mode} 加密成功")
+        } catch (e: Exception) {
+            tvDesResult.text = "❌ 错误: ${e.message}"
+            showToast("3DES加密失败")
         }
     }
 
