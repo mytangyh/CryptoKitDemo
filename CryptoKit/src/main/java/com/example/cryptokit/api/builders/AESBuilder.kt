@@ -330,9 +330,10 @@ class AESBuilder : SymmetricBuilder<AESBuilder>() {
      */
     fun decrypt(result: CipherResult): ByteArray {
         require(!result.isCleared()) { "CipherResult has been cleared" }
-        return key(result.key)
+        // 重要：必须先设置mode，再设置iv，因为iv验证依赖mode
+        return mode(result.mode)
+            .key(result.key)
             .iv(result.iv)
-            .mode(result.mode)
             .decrypt(result.ciphertext)
     }
 
