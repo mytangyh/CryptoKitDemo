@@ -157,8 +157,63 @@
                     android:id="@+id/btnAesEncrypt"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="AES 加密/解密"
+                    android:text="AES 加密/解密（随机密钥）"
                     android:backgroundTint="#4CAF50" />
+
+                <!-- 自定义密钥区域 -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#E0E0E0"
+                    android:layout_marginVertical="12dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📌 预协商密钥模式（客户端/服务端）"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="#333333"
+                    android:layout_marginBottom="8dp" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="密钥 Key（16字符=128位）"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etAesKey"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="kk7sscksh5shwdcf"
+                        android:fontFamily="monospace"
+                        android:textSize="12sp"
+                        android:inputType="text" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="初始向量 IV（16字符）"
+                    android:layout_marginTop="4dp"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etAesIv"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="eujvmfsvaj6tfeyr"
+                        android:fontFamily="monospace"
+                        android:textSize="12sp"
+                        android:inputType="text" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <Button
+                    android:id="@+id/btnAesSharedKey"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="使用预协商密钥加密"
+                    android:backgroundTint="#2196F3" />
 
                 <TextView
                     android:id="@+id/tvAesResult"

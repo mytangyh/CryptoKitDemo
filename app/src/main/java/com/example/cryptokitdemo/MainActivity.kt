@@ -105,6 +105,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupListeners() {
         findViewById<Button>(R.id.btnAesEncrypt).setOnClickListener { demoAesEncryption() }
+        findViewById<Button>(R.id.btnAesSharedKey).setOnClickListener { demoAesSharedKey() }
         findViewById<Button>(R.id.btnDesEncrypt).setOnClickListener { demoTripleDesEncryption() }
         findViewById<Button>(R.id.btnRsaEncrypt).setOnClickListener { demoRsaEncryption() }
         findViewById<Button>(R.id.btnHybridEncrypt).setOnClickListener { demoHybridEncryption() }
@@ -192,6 +193,66 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             tvAesResult.text = "❌ 错误: ${e.message}"
             showToast("AES加密失败")
+        }
+    }
+    
+    // ==================== AES 预协商密钥加密演示 ====================
+    private fun demoAesSharedKey() {
+        try {
+            val input = getInputText()
+            val key = findViewById<EditText>(R.id.etAesKey).text.toString()
+            val iv = findViewById<EditText>(R.id.etAesIv).text.toString()
+            
+            // 验证密钥长度
+            if (key.length !in listOf(16, 24, 32)) {
+                tvAesResult.text = "❌ 密钥长度必须是16/24/32字符，当前: ${key.length}"
+                return
+            }
+            if (iv.length != 16) {
+                tvAesResult.text = "❌ IV长度必须是16字符，当前: ${iv.length}"
+                return
+            }
+            
+            val startTime = System.currentTimeMillis()
+            
+            // 使用简化API加密
+            val ciphertext = CryptoKit.encryptAES(input, key, iv)
+            
+            // 解密验证
+            val decrypted = CryptoKit.decryptAES(ciphertext, key, iv)
+            
+            val duration = System.currentTimeMillis() - startTime
+            
+            val output = buildString {
+                appendLine("✅ AES-CBC 预协商密钥加密成功")
+                appendLine()
+                appendLine("📥 原文: $input")
+                appendLine()
+                appendLine("🔑 密钥: $key")
+                appendLine("    (${key.length}字符 = ${key.length * 8}位)")
+                appendLine()
+                appendLine("🎲 IV: $iv")
+                appendLine()
+                appendLine("🔒 密文 (Base64):")
+                appendLine(ciphertext.toBase64NoWrap())
+                appendLine()
+                appendLine("🔒 密文 (Hex):")
+                appendLine(ciphertext.toHex())
+                appendLine()
+                appendLine("📤 解密结果: $decrypted")
+                appendLine()
+                appendLine("⚡ 一行代码调用:")
+                appendLine("CryptoKit.encryptAES(text, key, iv)")
+                appendLine("CryptoKit.decryptAES(bytes, key, iv)")
+                appendLine()
+                appendLine("⏱️ 耗时: ${duration}ms")
+            }
+            
+            tvAesResult.text = output
+            showToast("预协商密钥加密成功")
+        } catch (e: Exception) {
+            tvAesResult.text = "❌ 预协商密钥加密失败: ${e.message}"
+            showToast("加密失败")
         }
     }
 
