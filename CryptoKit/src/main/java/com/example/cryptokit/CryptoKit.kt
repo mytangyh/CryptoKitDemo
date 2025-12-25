@@ -615,6 +615,88 @@ object CryptoKit {
     val logger: CryptoLogger get() = CryptoLogger
 
     // ==================== 快捷方法 ====================
+    
+    // ---------- AES 预协商密钥加解密（最常用场景） ----------
+    
+    /**
+     * AES 加密（预协商密钥场景）
+     * 
+     * 最简化的API，适用于客户端/服务端预协商key+iv的场景。
+     * 使用 AES-256-CBC 模式。
+     * 
+     * ## 使用示例
+     * ```kotlin
+     * val key = "0123456789abcdef0123456789abcdef".toByteArray()  // 32字节
+     * val iv = "0123456789abcdef".toByteArray()                   // 16字节
+     * 
+     * // 加密
+     * val ciphertext = CryptoKit.encryptAES("Hello Server", key, iv)
+     * 
+     * // 解密
+     * val plaintext = CryptoKit.decryptAES(ciphertext, key, iv)
+     * ```
+     * 
+     * @param plaintext 明文字符串
+     * @param key 密钥字节数组（16/24/32 字节）
+     * @param iv 初始化向量（16 字节）
+     * @return 密文字节数组
+     */
+    fun encryptAES(plaintext: String, key: ByteArray, iv: ByteArray): ByteArray =
+        aesWithSharedKey().encryptWithSharedKey(plaintext, key, iv)
+    
+    /**
+     * AES 加密（预协商密钥场景）
+     */
+    fun encryptAES(plaintext: ByteArray, key: ByteArray, iv: ByteArray): ByteArray =
+        aesWithSharedKey().encryptWithSharedKey(plaintext, key, iv)
+    
+    /**
+     * AES 解密（预协商密钥场景）
+     * 
+     * @param ciphertext 密文字节数组
+     * @param key 密钥字节数组
+     * @param iv 初始化向量
+     * @return 明文字符串
+     */
+    fun decryptAES(ciphertext: ByteArray, key: ByteArray, iv: ByteArray): String =
+        aesWithSharedKey().decryptWithSharedKeyToString(ciphertext, key, iv)
+    
+    /**
+     * AES 解密为字节数组
+     */
+    fun decryptAESBytes(ciphertext: ByteArray, key: ByteArray, iv: ByteArray): ByteArray =
+        aesWithSharedKey().decryptWithSharedKey(ciphertext, key, iv)
+    
+    /**
+     * AES 加密（十六进制密钥）
+     * 
+     * 当密钥以十六进制字符串形式存储时使用。
+     * 
+     * ## 使用示例
+     * ```kotlin
+     * val keyHex = "0123456789abcdef0123456789abcdef"  // 32字符 = 16字节 = 128位
+     * val ivHex = "fedcba9876543210fedcba9876543210"   // 32字符 = 16字节
+     * 
+     * val ciphertext = CryptoKit.encryptAESHex("Hello", keyHex, ivHex)
+     * val plaintext = CryptoKit.decryptAESHex(ciphertext, keyHex, ivHex)
+     * ```
+     */
+    fun encryptAESHex(plaintext: String, keyHex: String, ivHex: String): ByteArray {
+        val key = encode.fromHex(keyHex)
+        val iv = encode.fromHex(ivHex)
+        return encryptAES(plaintext, key, iv)
+    }
+    
+    /**
+     * AES 解密（十六进制密钥）
+     */
+    fun decryptAESHex(ciphertext: ByteArray, keyHex: String, ivHex: String): String {
+        val key = encode.fromHex(keyHex)
+        val iv = encode.fromHex(ivHex)
+        return decryptAES(ciphertext, key, iv)
+    }
+    
+    // ---------- 哈希快捷方法 ----------
 
     /**
      * 快速 SHA-256 哈希
