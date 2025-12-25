@@ -696,6 +696,33 @@ object CryptoKit {
         return decryptAES(ciphertext, key, iv)
     }
     
+    /**
+     * AES 加密（字符串密钥）
+     * 
+     * 直接使用字符串形式的密钥和IV，适用于密钥本身就是可打印字符的场景。
+     * 
+     * ## 使用示例
+     * ```kotlin
+     * val key = "kk7sscksh5shwdcf"  // 16字符 = 128位
+     * val iv = "eujvmfsvaj6tfeyr"   // 16字符
+     * 
+     * val ciphertext = CryptoKit.encryptAES("Hello", key, iv)
+     * val plaintext = CryptoKit.decryptAES(ciphertext, key, iv)
+     * ```
+     * 
+     * @param plaintext 明文
+     * @param key 字符串密钥（16/24/32 字符）
+     * @param iv 字符串IV（16 字符）
+     */
+    fun encryptAES(plaintext: String, key: String, iv: String): ByteArray =
+        encryptAES(plaintext, key.toByteArray(Charsets.UTF_8), iv.toByteArray(Charsets.UTF_8))
+    
+    /**
+     * AES 解密（字符串密钥）
+     */
+    fun decryptAES(ciphertext: ByteArray, key: String, iv: String): String =
+        decryptAES(ciphertext, key.toByteArray(Charsets.UTF_8), iv.toByteArray(Charsets.UTF_8))
+    
     // ---------- 哈希快捷方法 ----------
 
     /**
